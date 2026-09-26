@@ -1,7 +1,7 @@
 // routes/goals.js
 const express = require('express');
 const router = express.Router();
-const { db, logActivity, computeGoalProgress } = require('../utils');
+const { db, logActivity, computeGoalProgress } = require('./utils');
 
 // GET /api/goals
 router.get('/', (req, res) => {
