@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const { db, daysAgo, startOfDay, computeStreak, computeGoalProgress, getUser } = require('./utils');
-const { generateCoachMessages } = require('../coachEngine');
+const { generateCoachMessages } = require('./coachEngine');
 
 // ------------------------------------------------------------------
 // GET /api/dashboard
