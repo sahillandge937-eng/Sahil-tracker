@@ -28,7 +28,7 @@ app.use('/api', (req, res) => res.status(404).json({ error: 'Unknown API route' 
 
 // Everything else serves the single-page app shell; client-side JS handles routing.
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+ res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(PORT, () => {
