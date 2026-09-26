@@ -1,7 +1,7 @@
 // routes/progress.js
 const express = require('express');
 const router = express.Router();
-const { db, daysAgo, logActivity, getUser } = require('../utils');
+const { db, daysAgo, logActivity, getUser } = require('./utils');
 
 // GET /api/progress -> weight summary + history + workout consistency + strength progression
 router.get('/', (req, res) => {
