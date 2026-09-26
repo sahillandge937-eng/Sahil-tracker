@@ -15,13 +15,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/api/workouts', require('./routes/workouts'));
-app.use('/api/exercises', require('./routes/exercises'));
-app.use('/api/goals', require('./routes/goals'));
-app.use('/api/nutrition', require('./routes/nutrition'));
-app.use('/api/progress', require('./routes/progress'));
-app.use('/api', require('./routes/user'));      // /api/profile, /api/settings
-app.use('/api', require('./routes/insights'));  // /api/dashboard, /api/analytics, /api/coach, /api/activity
+app.use('/api/workouts', require('./workouts'));
+app.use('/api/exercises', require('./exercises'));
+app.use('/api/goals', require('./goals'));
+app.use('/api/nutrition', require('./nutrition'));
+app.use('/api/progress', require('./progress'));
+app.use('/api', require('./user'));      // /api/profile, /api/settings
+app.use('/api', require('./insights'));  // /api/dashboard, /api/analytics, /api/coach, /api/activity
 
 // Any unmatched /api route -> clean 404 JSON instead of falling through to the SPA.
 app.use('/api', (req, res) => res.status(404).json({ error: 'Unknown API route' }));
