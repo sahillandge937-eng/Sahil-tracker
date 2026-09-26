@@ -1,7 +1,7 @@
 // routes/insights.js
 const express = require('express');
 const router = express.Router();
-const { db, daysAgo, startOfDay, computeStreak, computeGoalProgress, getUser } = require('../utils');
+const { db, daysAgo, startOfDay, computeStreak, computeGoalProgress, getUser } = require('./utils');
 const { generateCoachMessages } = require('../coachEngine');
 
 // ------------------------------------------------------------------
