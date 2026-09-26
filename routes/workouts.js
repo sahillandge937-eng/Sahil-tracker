@@ -1,7 +1,7 @@
 // routes/workouts.js
 const express = require('express');
 const router = express.Router();
-const { db, estimateCalories, logActivity, getUser } = require./utils');
+const { db, estimateCalories, logActivity, getUser } = 'require('../utils');
 
 const VALID_TYPES = ['Run', 'Strength', 'Cycle', 'HIIT', 'Yoga', 'Swim'];
 
