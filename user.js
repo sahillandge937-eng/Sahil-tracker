@@ -1,7 +1,7 @@
 // routes/user.js
 const express = require('express');
 const router = express.Router();
-const { db, getUser } = require('../utils');
+const { db, getUser } = require('./utils');
 
 // GET /api/profile
 router.get('/profile', (req, res) => {
