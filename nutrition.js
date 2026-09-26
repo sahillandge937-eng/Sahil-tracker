@@ -1,7 +1,7 @@
 // routes/nutrition.js
 const express = require('express');
 const router = express.Router();
-const { db, daysAgo, startOfDay, logActivity, getUser } = require('../utils');
+const { db, daysAgo, startOfDay, logActivity, getUser } = require('./utils');
 
 // GET /api/nutrition?date=<ms>   (defaults to today) -> entries + daily totals + target
 // GET /api/nutrition?range=week  -> last 7 days of daily calorie totals, for the chart
