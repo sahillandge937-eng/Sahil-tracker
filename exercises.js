@@ -1,7 +1,7 @@
 // routes/exercises.js
 const express = require('express');
 const router = express.Router();
-const { db } = require('../utils');
+const { db } = require('./utils');
 
 // GET /api/exercises?search=&muscle_group=&category=&difficulty=
 router.get('/', (req, res) => {
