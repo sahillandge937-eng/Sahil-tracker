@@ -48,5 +48,38 @@ router.post('/register', (req, res) => {
     });
   }
 });
+// POST /api/auth/login
+router.post('/login', (req, res) => {
+  const { email, password } = req.body || {};
 
+  if (!email || !password) {
+    return res.status(400).json({
+      error: 'Please enter email and password.'
+    });
+  }
+
+  try {
+    const user = db
+      .prepare('SELECT id, name, email, password_hash FROM users WHERE email = ?')
+      .get(email);
+
+    if (!user || user.password_hash !== hashPassword(password)) {
+      return res.status(401).json({
+        error: 'Invalid email or password.'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Login successful.',
+      user: { id: user.id, name: user.name, email: user.email }
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: 'Login failed.'
+    });
+  }
+});
 module.exports = router;
