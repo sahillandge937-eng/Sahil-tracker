@@ -14,7 +14,7 @@ db.pragma('foreign_keys = ON');
 // ---------------------------------------------------------------------
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
+    id INTEGER PRIMARY KEY AUTOINCREMENT,,
     name TEXT DEFAULT 'Athlete',
     age INTEGER,
     height_cm REAL,
