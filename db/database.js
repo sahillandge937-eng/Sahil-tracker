@@ -1,7 +1,6 @@
 // db/database.js
 // Creates (if needed) and opens the SQLite database, defines the schema,
-// and seeds a small, clearly-flagged set of demo data on first run so the
-// dashboard isn't empty the very first time the app is opened.
+// and initializes essential base user & exercise data.
 
 const path = require('path');
 const Database = require('better-sqlite3');
@@ -109,15 +108,8 @@ db.exec(`
 `);
 
 // ---------------------------------------------------------------------
-// Seeding (only runs the first time, per table)
+// Essential Base Seeding
 // ---------------------------------------------------------------------
-function daysAgoTs(n) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  d.setHours(8, 0, 0, 0);
-  return d.getTime();
-}
-
 function seed() {
   const userCount = db.prepare('SELECT COUNT(*) c FROM users').get().c;
   if (userCount === 0) {
@@ -153,96 +145,8 @@ function seed() {
     const insertMany = db.transaction((rows) => rows.forEach(r => insert.run(...r)));
     insertMany(exercises);
   }
-
-  const workoutCount = db.prepare('SELECT COUNT(*) c FROM workouts').get().c;
-  if (workoutCount === 0) {
-    const insertWorkout = db.prepare(`
-      INSERT INTO workouts (type, date, duration_min, distance_km, difficulty, calories, notes, is_demo)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-    `);
-
-    const insertWE = db.prepare(`
-      INSERT INTO workout_exercises (workout_id, exercise_id, sets, reps, weight_kg, rest_seconds)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-
-    const insertActivity = db.prepare('INSERT INTO activity_logs (type, description, date) VALUES (?, ?, ?)');
-    const benchId = db.prepare("SELECT id FROM exercises WHERE name = 'Bench Press'").get().id;
-    const squatId = db.prepare("SELECT id FROM exercises WHERE name = 'Squats'").get().id;
-    const runId = db.prepare("SELECT id FROM exercises WHERE name = 'Running'").get().id;
-
-    const demoWorkouts = [
-      { type: 'Strength', daysAgo: 5, duration: 50, distance: null, difficulty: 3, calories: 320, notes: 'Upper body day', ex: [[benchId, 4, 8, 60, 90]] },
-      { type: 'Run', daysAgo: 4, duration: 30, distance: 5, difficulty: 3, calories: 310, notes: 'Easy morning run', ex: [[runId, 1, 1, null, 0]] },
-      { type: 'Strength', daysAgo: 2, duration: 55, distance: null, difficulty: 4, calories: 340, notes: 'Leg day', ex: [[squatId, 4, 6, 80, 120]] },
-      { type: 'HIIT', daysAgo: 1, duration: 25, distance: null, difficulty: 5, calories: 300, notes: 'Interval circuit', ex: [] }
-    ];
-
-    const seedTx = db.transaction(() => {
-      demoWorkouts.forEach(w => {
-        const ts = daysAgoTs(w.daysAgo);
-        const info = insertWorkout.run(w.type, ts, w.duration, w.distance, w.difficulty, w.calories, w.notes);
-
-        w.ex.forEach(([exerciseId, sets, reps, weight, rest]) => {
-          insertWE.run(info.lastInsertRowid, exerciseId, sets, reps, weight, rest);
-        });
-
-        insertActivity.run('workout', `Logged a ${w.type} workout (${w.duration} min)`, ts);
-      });
-    });
-
-    seedTx();
-  }
-
-  const weightCount = db.prepare('SELECT COUNT(*) c FROM weight_logs').get().c;
-  if (weightCount === 0) {
-    const insert = db.prepare('INSERT INTO weight_logs (weight_kg, date, is_demo) VALUES (?, ?, 1)');
-
-    const seedTx = db.transaction(() => {
-      insert.run(71.2, daysAgoTs(20));
-      insert.run(70.6, daysAgoTs(13));
-      insert.run(70.1, daysAgoTs(6));
-      insert.run(69.7, daysAgoTs(1));
-    });
-
-    seedTx();
-  }
-
-  const goalCount = db.prepare('SELECT COUNT(*) c FROM goals').get().c;
-  if (goalCount === 0) {
-    const insert = db.prepare(`
-      INSERT INTO goals (title, type, target_value, unit, status, created_at, is_demo)
-      VALUES (?, ?, ?, ?, 'active', ?, 1)
-    `);
-
-    const seedTx = db.transaction(() => {
-      insert.run('Workout 4 times per week', 'workouts_per_week', 4, 'workouts', daysAgoTs(10));
-      insert.run('Run 20 km per week', 'distance_per_week', 20, 'km', daysAgoTs(10));
-      insert.run('Reach 66 kg', 'target_weight', 66, 'kg', daysAgoTs(10));
-    });
-
-    seedTx();
-  }
-
-  const nutritionCount = db.prepare('SELECT COUNT(*) c FROM nutrition').get().c;
-  if (nutritionCount === 0) {
-    const insert = db.prepare(`
-      INSERT INTO nutrition (food_name, calories, protein_g, carbs_g, fat_g, meal_type, date, is_demo)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-    `);
-
-    const today = daysAgoTs(0);
-
-    const seedTx = db.transaction(() => {
-      insert.run('Oats & banana', 420, 14, 68, 9, 'Breakfast', today);
-      insert.run('Grilled chicken & rice', 650, 48, 70, 14, 'Lunch', today);
-      insert.run('Greek yogurt', 150, 15, 9, 4, 'Snack', today);
-    });
-
-    seedTx();
-  }
 }
 
-//seed();
+seed();
 
 module.exports = db;
