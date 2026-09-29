@@ -165,6 +165,7 @@
     if (response.ok) {
       message.style.color = "#4ade80";
       message.textContent = "Login successful!";
+      localStorage.setItem("user", JSON.stringify(data.user));
 
       setTimeout(() => {
         window.location.href = "index.html";
