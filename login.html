@@ -136,20 +136,49 @@
   </div>
 
   <script>
-    document.getElementById("loginForm").addEventListener("submit", function(e) {
-      e.preventDefault();
+    document.getElementById("loginForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
 
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      const message = document.getElementById("message");
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const message = document.getElementById("message");
 
-      if (email && password) {
-        message.style.color = "#4ade80";
-        message.textContent = "Login details received!";
-      } else {
-        message.textContent = "Please enter email and password.";
-      }
+  if (!email || !password) {
+    message.textContent = "Please enter email and password.";
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email: email,
+        password: password
+      })
     });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      message.style.color = "#4ade80";
+      message.textContent = "Login successful!";
+
+      setTimeout(() => {
+        window.location.href = "index.html";
+      }, 1000);
+    } else {
+      message.style.color = "#ff6b6b";
+      message.textContent = data.error || "Invalid email or password.";
+    }
+
+  } catch (error) {
+    message.style.color = "#ff6b6b";
+    message.textContent = "Server error. Please try again.";
+  }
+});
   </script>
 
 </body>
