@@ -20,7 +20,8 @@ app.use('/api/exercises', require('./exercises'));
 app.use('/api/goals', require('./goals'));
 app.use('/api/nutrition', require('./nutrition'));
 app.use('/api/progress', require('./progress'));
-app.use('/api', require('./user'));      // /api/profile, /api/settings
+app.use('/api', require('./user')); // /api/profile, /api/settings
+app.use('/api/auth', require('./auth'));
 app.use('/api', require('./insights'));  // /api/dashboard, /api/analytics, /api/coach, /api/activity
 
 // Any unmatched /api route -> clean 404 JSON instead of falling through to the SPA.
