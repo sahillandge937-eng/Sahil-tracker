@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Create Account - PULSE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial;
+      background: #111;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .box {
+      width: 90%;
+      max-width: 400px;
+      padding: 25px;
+      background: #222;
+      border-radius: 12px;
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      box-sizing: border-box;
+    }
+    button {
+      cursor: pointer;
+    }
+    a { color: #4da6ff; }
+  </style>
+</head>
+<body>
+
+<div class="box">
+  <h2>Create Account</h2>
+
+  <input type="text" id="name" placeholder="Name">
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Password">
+
+  <button onclick="register()">Create Account</button>
+
+  <p><a href="login.html">Back to Login</a></p>
+  <p id="message"></p>
+</div>
+
+<script>
+function register() {
+  const name = document.getElementById("name").value;
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  if (!name || !email || !password) {
+    document.getElementById("message").innerText =
+      "Please fill all fields.";
+    return;
+  }
+
+  document.getElementById("message").innerText =
+    "Account details received!";
+}
+</script>
+
+</body>
+</html>
