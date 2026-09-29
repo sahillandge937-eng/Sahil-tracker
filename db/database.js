@@ -16,6 +16,8 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT DEFAULT 'Athlete',
+    email TEXT,
+    password_hash TEXT,
     age INTEGER,
     height_cm REAL,
     weight_kg REAL,
