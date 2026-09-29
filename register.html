@@ -47,19 +47,45 @@
   <p id="message"></p>
 </div>
 <script>
-function register() {
-  const name = document.getElementById("name").value;
-  const email = document.getElementById("email").value;
+async function register() {
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
 
+  const message = document.getElementById("message");
+
   if (!name || !email || !password) {
-    document.getElementById("message").innerText =
-      "Please fill all fields.";
+    message.innerText = "Please fill all fields.";
     return;
   }
 
-  document.getElementById("message").innerText =
-    "Account details received!";
+  try {
+    const response = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        name: name,
+        email: email,
+        password: password
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      message.innerText = "Account created successfully!";
+      setTimeout(() => {
+        window.location.href = "login.html";
+      }, 1000);
+    } else {
+      message.innerText = data.error || "Registration failed.";
+    }
+
+  } catch (error) {
+    message.innerText = "Server error. Please try again.";
+  }
 }
 </script>
 
