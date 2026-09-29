@@ -1,5 +1,7 @@
 <script>
-  window.location.href = "login.html";
+  if (!localStorage.getItem("user")) {
+    window.location.href = "login.html";
+  }
 </script>
 <!DOCTYPE html>
 <html lang="en">
