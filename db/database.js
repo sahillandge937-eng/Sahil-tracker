@@ -243,6 +243,6 @@ function seed() {
   }
 }
 
-seed();
+//seed();
 
 module.exports = db;
