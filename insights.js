@@ -160,8 +160,9 @@ router.get('/dashboard', (req, res) => {
 
     currentGoals,
 
+    // FIXED: Coach now uses logged-in user's data
     coachRecommendations:
-      generateCoachMessages().slice(0, 3)
+      generateCoachMessages(userId).slice(0, 3)
   });
 });
 
@@ -327,8 +328,11 @@ router.get('/analytics', (req, res) => {
 // GET /api/coach
 // ------------------------------------------------------------
 router.get('/coach', (req, res) => {
+  const userId = getRequestUserId(req);
+
   res.json({
-    messages: generateCoachMessages()
+    // FIXED: Coach now uses logged-in user's data
+    messages: generateCoachMessages(userId)
   });
 });
 
