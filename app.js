@@ -11,6 +11,7 @@ const NAV = [
   { id: 'analytics', label: 'Analytics', icon: '📉', view: (el) => Views.analytics(el) },
   { id: 'goals', label: 'Goals', icon: '🎯', view: (el) => Views.goals(el) },
   { id: 'nutrition', label: 'Nutrition', icon: '🍽️', view: (el) => Views.nutrition(el) },
+  { id: 'history', label: 'History', icon: '📅', view: (el) => Views.history(el) },
   { id: 'coach', label: 'AI Coach', icon: '🤖', view: (el) => Views.coach(el) },
   { id: 'activity', label: 'Activity', icon: '🕒', view: (el) => Views.activity(el) },
   { id: 'profile', label: 'Profile', icon: '👤', view: (el) => Views.profile(el) },
