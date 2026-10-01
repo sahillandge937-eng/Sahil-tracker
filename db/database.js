@@ -509,6 +509,5 @@ function seedPreviousMonthData() {
 // ---------------------------------------------------------------------
 
 seed();
-seedPreviousMonthData();
 
 module.exports = db;
