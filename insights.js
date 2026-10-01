@@ -142,5 +142,78 @@ router.get('/activity', (req, res) => {
   const rows = db.prepare('SELECT * FROM activity_logs ORDER BY date DESC LIMIT ?').all(limit);
   res.json(rows);
 });
+// GET /api/history?month=YYYY-MM
+router.get('/history', (req, res) => {
+  const month = String(req.query.month || '');
 
+  if (!/^\d{4}-\d{2}$/.test(month)) {
+    return res.status(400).json({ error: 'Month must be in YYYY-MM format' });
+  }
+
+  const [year, monthNumber] = month.split('-').map(Number);
+
+  const start = new Date(year, monthNumber - 1, 1);
+  const end = new Date(year, monthNumber, 1);
+
+  const startTs = start.getTime();
+  const endTs = end.getTime();
+
+  const workouts = db.prepare(`
+    SELECT * FROM workouts
+    WHERE date >= ? AND date < ?
+    ORDER BY date ASC
+  `).all(startTs, endTs);
+
+  const nutrition = db.prepare(`
+    SELECT * FROM nutrition
+    WHERE date >= ? AND date < ?
+    ORDER BY date ASC
+  `).all(startTs, endTs);
+
+  const daily = [];
+
+  for (
+    let d = new Date(start);
+    d < end;
+    d.setDate(d.getDate() + 1)
+  ) {
+    const dayStart = new Date(d).getTime();
+    const dayEnd = dayStart + 86400000;
+
+    const dayWorkouts = workouts.filter(
+      w => w.date >= dayStart && w.date < dayEnd
+    );
+
+    const dayNutrition = nutrition.filter(
+      n => n.date >= dayStart && n.date < dayEnd
+    );
+
+    daily.push({
+      date: dayStart,
+      workout_count: dayWorkouts.length,
+      workout_calories: dayWorkouts.reduce((sum, w) => sum + w.calories, 0),
+      workout_minutes: dayWorkouts.reduce((sum, w) => sum + w.duration_min, 0),
+      nutrition_calories: dayNutrition.reduce((sum, n) => sum + n.calories, 0),
+      protein: dayNutrition.reduce((sum, n) => sum + n.protein_g, 0),
+      carbs: dayNutrition.reduce((sum, n) => sum + n.carbs_g, 0),
+      fat: dayNutrition.reduce((sum, n) => sum + n.fat_g, 0)
+    });
+  }
+
+  const monthly = {
+    workouts: workouts.length,
+    workout_calories: workouts.reduce((sum, w) => sum + w.calories, 0),
+    workout_minutes: workouts.reduce((sum, w) => sum + w.duration_min, 0),
+    nutrition_calories: nutrition.reduce((sum, n) => sum + n.calories, 0),
+    protein: nutrition.reduce((sum, n) => sum + n.protein_g, 0),
+    carbs: nutrition.reduce((sum, n) => sum + n.carbs_g, 0),
+    fat: nutrition.reduce((sum, n) => sum + n.fat_g, 0)
+  };
+
+  res.json({
+    month,
+    monthly,
+    daily
+  });
+});
 module.exports = router;
