@@ -78,10 +78,10 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS goals (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
-    type TEXT NOT NULL,          -- workouts_per_week | distance_per_week | target_weight | calories_per_week | streak
+    type TEXT NOT NULL,
     target_value REAL NOT NULL,
     unit TEXT,
-    status TEXT DEFAULT 'active', -- active | completed
+    status TEXT DEFAULT 'active',
     created_at INTEGER DEFAULT (strftime('%s','now') * 1000),
     deadline INTEGER,
     is_demo INTEGER DEFAULT 0
@@ -101,7 +101,7 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS activity_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    type TEXT NOT NULL,          -- workout | weight | goal | nutrition | pr
+    type TEXT NOT NULL,
     description TEXT NOT NULL,
     date INTEGER NOT NULL
   );
@@ -112,17 +112,29 @@ db.exec(`
 // ---------------------------------------------------------------------
 function seed() {
   const userCount = db.prepare('SELECT COUNT(*) c FROM users').get().c;
+
   if (userCount === 0) {
     db.prepare(`
-      INSERT INTO users (id, name, age, height_cm, weight_kg, gender, fitness_goal, activity_level,
-        weekly_workout_target, calorie_target, protein_target, carb_target, fat_target, goal_weight_kg,
-        weight_unit, theme, notifications_enabled)
-      VALUES (1, 'Athlete', 22, 172, 70, 'unspecified', 'Build strength & endurance', 'moderately active',
-        4, 2200, 150, 250, 70, 66, 'kg', 'dark', 1)
+      INSERT INTO users (
+        id, name, age, height_cm, weight_kg, gender,
+        fitness_goal, activity_level,
+        weekly_workout_target, calorie_target,
+        protein_target, carb_target, fat_target,
+        goal_weight_kg, weight_unit, theme, notifications_enabled
+      )
+      VALUES (
+        1, 'Athlete', 22, 172, 70, 'unspecified',
+        'Build strength & endurance', 'moderately active',
+        4, 2200, 150, 250, 70,
+        66, 'kg', 'dark', 1
+      )
     `).run();
   }
 
-  const exerciseCount = db.prepare('SELECT COUNT(*) c FROM exercises').get().c;
+  const exerciseCount = db.prepare(
+    'SELECT COUNT(*) c FROM exercises'
+  ).get().c;
+
   if (exerciseCount === 0) {
     const exercises = [
       ['Bench Press', 'Chest', 'Strength', 'Intermediate', 'Barbell press performed lying on a flat bench, targeting the chest, shoulders and triceps.'],
@@ -141,12 +153,152 @@ function seed() {
       ['Leg Press', 'Legs', 'Strength', 'Beginner', 'Machine-based compound push for the quads, glutes and hamstrings.']
     ];
 
-    const insert = db.prepare('INSERT INTO exercises (name, muscle_group, category, difficulty, description) VALUES (?,?,?,?,?)');
-    const insertMany = db.transaction((rows) => rows.forEach(r => insert.run(...r)));
+    const insert = db.prepare(`
+      INSERT INTO exercises
+      (name, muscle_group, category, difficulty, description)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+
+    const insertMany = db.transaction((rows) => {
+      rows.forEach(row => insert.run(...row));
+    });
+
     insertMany(exercises);
   }
 }
 
+// ---------------------------------------------------------------------
+// Previous Month Demo Data - September 2026
+// ---------------------------------------------------------------------
+function seedPreviousMonthData() {
+  const start = Date.UTC(2026, 8, 1);
+  const end = Date.UTC(2026, 9, 1);
+
+  const workoutExists = db.prepare(`
+    SELECT COUNT(*) c
+    FROM workouts
+    WHERE is_demo = 1
+      AND date >= ?
+      AND date < ?
+  `).get(start, end).c;
+
+  // If September demo workouts already exist, do not insert them again.
+  if (workoutExists === 0) {
+    const workouts = [
+      ['Run', 30, 5, 320, 2],
+      ['Strength', 45, null, 280, 5],
+      ['Cycling', 50, 12, 420, 7],
+      ['HIIT', 35, null, 360, 10],
+      ['Yoga', 40, null, 160, 12],
+      ['Run', 35, 5.5, 350, 14],
+      ['Strength', 50, null, 310, 17],
+      ['Cycling', 45, 10, 380, 20],
+      ['HIIT', 30, null, 330, 24],
+      ['Run', 40, 6, 390, 28]
+    ];
+
+    const insertWorkout = db.prepare(`
+      INSERT INTO workouts
+      (
+        type,
+        date,
+        duration_min,
+        distance_km,
+        difficulty,
+        calories,
+        notes,
+        is_demo
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+    `);
+
+    workouts.forEach((w) => {
+      insertWorkout.run(
+        w[0],
+        Date.UTC(2026, 8, w[4], 12),
+        w[1],
+        w[2],
+        3,
+        w[3],
+        'Sample historical workout',
+      );
+    });
+  }
+
+  const nutritionExists = db.prepare(`
+    SELECT COUNT(*) c
+    FROM nutrition
+    WHERE is_demo = 1
+      AND date >= ?
+      AND date < ?
+  `).get(start, end).c;
+
+  // Add sample nutrition records only if they do not already exist.
+  if (nutritionExists === 0) {
+    const nutrition = [
+      ['Breakfast', 450, 18, 60, 15, 2],
+      ['Lunch', 650, 30, 75, 20, 2],
+      ['Dinner', 550, 25, 55, 18, 2],
+      ['Snack', 250, 8, 30, 10, 2],
+
+      ['Breakfast', 420, 17, 55, 14, 5],
+      ['Lunch', 620, 29, 72, 19, 5],
+      ['Dinner', 570, 26, 58, 18, 5],
+
+      ['Breakfast', 460, 19, 62, 15, 9],
+      ['Lunch', 640, 31, 74, 20, 9],
+      ['Dinner', 560, 25, 57, 18, 9],
+
+      ['Breakfast', 440, 18, 58, 14, 14],
+      ['Lunch', 630, 30, 73, 19, 14],
+      ['Dinner', 580, 27, 59, 19, 14],
+
+      ['Breakfast', 455, 18, 60, 15, 20],
+      ['Lunch', 660, 31, 76, 21, 20],
+      ['Dinner', 540, 24, 54, 17, 20],
+
+      ['Breakfast', 430, 17, 57, 14, 24],
+      ['Lunch', 645, 30, 74, 20, 24],
+      ['Dinner', 565, 26, 56, 18, 24],
+
+      ['Breakfast', 470, 19, 63, 15, 28],
+      ['Lunch', 650, 31, 75, 20, 28],
+      ['Dinner', 560, 25, 57, 18, 28]
+    ];
+
+    const insertNutrition = db.prepare(`
+      INSERT INTO nutrition
+      (
+        food_name,
+        calories,
+        protein_g,
+        carbs_g,
+        fat_g,
+        meal_type,
+        date,
+        is_demo
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+    `);
+
+    nutrition.forEach((n) => {
+      insertNutrition.run(
+        n[0],
+        n[1],
+        n[2],
+        n[3],
+        n[4],
+        n[0],
+        Date.UTC(2026, 8, n[5], 13)
+      );
+    });
+  }
+}
+
+// ---------------------------------------------------------------------
+// Run initialization
+// ---------------------------------------------------------------------
 seed();
+seedPreviousMonthData();
 
 module.exports = db;
