@@ -36,9 +36,8 @@ function logActivity(type, description, date) {
   db.prepare('INSERT INTO activity_logs (type, description, date) VALUES (?, ?, ?)')
     .run(type, description, date || Date.now());
 }
-
-function getUser() {
-  return db.prepare('SELECT * FROM users WHERE id = 1').get();
+function getUser(userId = 1) {
+  return db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
 }
 
 // Computes a goal's current progress dynamically from real stored data.
