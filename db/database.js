@@ -110,11 +110,11 @@ db.exec(`
 // ---------------------------------------------------------------------
 // User Data Migration
 // ---------------------------------------------------------------------
-// Adds user_id to personal-data tables if the existing database
-// does not already have it.
 
 function addUserIdColumn(tableName) {
-  const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
+  const columns = db
+    .prepare(`PRAGMA table_info(${tableName})`)
+    .all();
 
   const hasUserId = columns.some(
     column => column.name === 'user_id'
@@ -136,29 +136,40 @@ function addUserIdColumn(tableName) {
 ].forEach(addUserIdColumn);
 
 // Existing records belong to the original/default user.
-db.prepare(
-  'UPDATE workouts SET user_id = 1 WHERE user_id IS NULL'
-).run();
+db.prepare(`
+  UPDATE workouts
+  SET user_id = 1
+  WHERE user_id IS NULL
+`).run();
 
-db.prepare(
-  'UPDATE weight_logs SET user_id = 1 WHERE user_id IS NULL'
-).run();
+db.prepare(`
+  UPDATE weight_logs
+  SET user_id = 1
+  WHERE user_id IS NULL
+`).run();
 
-db.prepare(
-  'UPDATE goals SET user_id = 1 WHERE user_id IS NULL'
-).run();
+db.prepare(`
+  UPDATE goals
+  SET user_id = 1
+  WHERE user_id IS NULL
+`).run();
 
-db.prepare(
-  'UPDATE nutrition SET user_id = 1 WHERE user_id IS NULL'
-).run();
+db.prepare(`
+  UPDATE nutrition
+  SET user_id = 1
+  WHERE user_id IS NULL
+`).run();
 
-db.prepare(
-  'UPDATE activity_logs SET user_id = 1 WHERE user_id IS NULL'
-).run();
+db.prepare(`
+  UPDATE activity_logs
+  SET user_id = 1
+  WHERE user_id IS NULL
+`).run();
 
 // ---------------------------------------------------------------------
 // Essential Base Seeding
 // ---------------------------------------------------------------------
+
 function seed() {
   const userCount = db
     .prepare('SELECT COUNT(*) c FROM users')
@@ -336,136 +347,167 @@ function seed() {
 // ---------------------------------------------------------------------
 // Previous Month Demo Data - September 2026
 // ---------------------------------------------------------------------
+// Creates September demo data for every registered user.
+// It checks first, so the same demo data is not duplicated.
+
 function seedPreviousMonthData() {
   const start = Date.UTC(2026, 8, 1);
   const end = Date.UTC(2026, 9, 1);
 
-  const workoutExists = db.prepare(`
-    SELECT COUNT(*) c
-    FROM workouts
-    WHERE is_demo = 1
-      AND user_id = 1
-      AND date >= ?
-      AND date < ?
-  `).get(start, end).c;
+  const users = db.prepare(`
+    SELECT id
+    FROM users
+  `).all();
 
-  if (workoutExists === 0) {
-    const workouts = [
-      ['Run', 30, 5, 320, 2],
-      ['Strength', 45, null, 280, 5],
-      ['Cycling', 50, 12, 420, 7],
-      ['HIIT', 35, null, 360, 10],
-      ['Yoga', 40, null, 160, 12],
-      ['Run', 35, 5.5, 350, 14],
-      ['Strength', 50, null, 310, 17],
-      ['Cycling', 45, 10, 380, 20],
-      ['HIIT', 30, null, 330, 24],
-      ['Run', 40, 6, 390, 28]
-    ];
+  const workouts = [
+    ['Run', 30, 5, 320, 2],
+    ['Strength', 45, null, 280, 5],
+    ['Cycle', 50, 12, 420, 7],
+    ['HIIT', 35, null, 360, 10],
+    ['Yoga', 40, null, 160, 12],
+    ['Run', 35, 5.5, 350, 14],
+    ['Strength', 50, null, 310, 17],
+    ['Cycle', 45, 10, 380, 20],
+    ['HIIT', 30, null, 330, 24],
+    ['Run', 40, 6, 390, 28]
+  ];
 
-    const insertWorkout = db.prepare(`
-      INSERT INTO workouts
-      (
-        type,
-        date,
-        duration_min,
-        distance_km,
-        difficulty,
-        calories,
-        notes,
-        is_demo,
-        user_id
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1)
-    `);
+  const nutrition = [
+    ['Breakfast', 450, 18, 60, 15, 2],
+    ['Lunch', 650, 30, 75, 20, 2],
+    ['Dinner', 550, 25, 55, 18, 2],
+    ['Snack', 250, 8, 30, 10, 2],
 
-    workouts.forEach((w) => {
-      insertWorkout.run(
-        w[0],
-        Date.UTC(2026, 8, w[4], 12),
-        w[1],
-        w[2],
-        3,
-        w[3],
-        'Sample historical workout'
-      );
-    });
-  }
+    ['Breakfast', 420, 17, 55, 14, 5],
+    ['Lunch', 620, 29, 72, 19, 5],
+    ['Dinner', 570, 26, 58, 18, 5],
 
-  const nutritionExists = db.prepare(`
-    SELECT COUNT(*) c
-    FROM nutrition
-    WHERE is_demo = 1
-      AND user_id = 1
-      AND date >= ?
-      AND date < ?
-  `).get(start, end).c;
+    ['Breakfast', 460, 19, 62, 15, 9],
+    ['Lunch', 640, 31, 74, 20, 9],
+    ['Dinner', 560, 25, 57, 18, 9],
 
-  if (nutritionExists === 0) {
-    const nutrition = [
-      ['Breakfast', 450, 18, 60, 15, 2],
-      ['Lunch', 650, 30, 75, 20, 2],
-      ['Dinner', 550, 25, 55, 18, 2],
-      ['Snack', 250, 8, 30, 10, 2],
+    ['Breakfast', 440, 18, 58, 14, 14],
+    ['Lunch', 630, 30, 73, 19, 14],
+    ['Dinner', 580, 27, 59, 19, 14],
 
-      ['Breakfast', 420, 17, 55, 14, 5],
-      ['Lunch', 620, 29, 72, 19, 5],
-      ['Dinner', 570, 26, 58, 18, 5],
+    ['Breakfast', 455, 18, 60, 15, 20],
+    ['Lunch', 660, 31, 76, 21, 20],
+    ['Dinner', 540, 24, 54, 17, 20],
 
-      ['Breakfast', 460, 19, 62, 15, 9],
-      ['Lunch', 640, 31, 74, 20, 9],
-      ['Dinner', 560, 25, 57, 18, 9],
+    ['Breakfast', 430, 17, 57, 14, 24],
+    ['Lunch', 645, 30, 74, 20, 24],
+    ['Dinner', 565, 26, 56, 18, 24],
 
-      ['Breakfast', 440, 18, 58, 14, 14],
-      ['Lunch', 630, 30, 73, 19, 14],
-      ['Dinner', 580, 27, 59, 19, 14],
+    ['Breakfast', 470, 19, 63, 15, 28],
+    ['Lunch', 650, 31, 75, 20, 28],
+    ['Dinner', 560, 25, 57, 18, 28]
+  ];
 
-      ['Breakfast', 455, 18, 60, 15, 20],
-      ['Lunch', 660, 31, 76, 21, 20],
-      ['Dinner', 540, 24, 54, 17, 20],
+  users.forEach(user => {
+    const userId = user.id;
 
-      ['Breakfast', 430, 17, 57, 14, 24],
-      ['Lunch', 645, 30, 74, 20, 24],
-      ['Dinner', 565, 26, 56, 18, 24],
+    // ---------------------------------------------------------------
+    // September Workouts
+    // ---------------------------------------------------------------
 
-      ['Breakfast', 470, 19, 63, 15, 28],
-      ['Lunch', 650, 31, 75, 20, 28],
-      ['Dinner', 560, 25, 57, 18, 28]
-    ];
+    const workoutExists = db.prepare(`
+      SELECT COUNT(*) c
+      FROM workouts
+      WHERE is_demo = 1
+        AND user_id = ?
+        AND date >= ?
+        AND date < ?
+    `).get(
+      userId,
+      start,
+      end
+    ).c;
 
-    const insertNutrition = db.prepare(`
-      INSERT INTO nutrition
-      (
-        food_name,
-        calories,
-        protein_g,
-        carbs_g,
-        fat_g,
-        meal_type,
-        date,
-        is_demo,
-        user_id
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1)
-    `);
+    if (workoutExists === 0) {
+      const insertWorkout = db.prepare(`
+        INSERT INTO workouts
+        (
+          type,
+          date,
+          duration_min,
+          distance_km,
+          difficulty,
+          calories,
+          notes,
+          is_demo,
+          user_id
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
+      `);
 
-    nutrition.forEach((n) => {
-      insertNutrition.run(
-        n[0],
-        n[1],
-        n[2],
-        n[3],
-        n[4],
-        n[0],
-        Date.UTC(2026, 8, n[5], 13)
-      );
-    });
-  }
+      workouts.forEach(w => {
+        insertWorkout.run(
+          w[0],
+          Date.UTC(2026, 8, w[4], 12),
+          w[1],
+          w[2],
+          3,
+          w[3],
+          'Sample historical workout',
+          userId
+        );
+      });
+    }
+
+    // ---------------------------------------------------------------
+    // September Nutrition
+    // ---------------------------------------------------------------
+
+    const nutritionExists = db.prepare(`
+      SELECT COUNT(*) c
+      FROM nutrition
+      WHERE is_demo = 1
+        AND user_id = ?
+        AND date >= ?
+        AND date < ?
+    `).get(
+      userId,
+      start,
+      end
+    ).c;
+
+    if (nutritionExists === 0) {
+      const insertNutrition = db.prepare(`
+        INSERT INTO nutrition
+        (
+          food_name,
+          calories,
+          protein_g,
+          carbs_g,
+          fat_g,
+          meal_type,
+          date,
+          is_demo,
+          user_id
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
+      `);
+
+      nutrition.forEach(n => {
+        insertNutrition.run(
+          n[0],
+          n[1],
+          n[2],
+          n[3],
+          n[4],
+          n[0],
+          Date.UTC(2026, 8, n[5], 13),
+          userId
+        );
+      });
+    }
+  });
 }
 
 // ---------------------------------------------------------------------
 // Run initialization
 // ---------------------------------------------------------------------
+
 seed();
 seedPreviousMonthData();
 
