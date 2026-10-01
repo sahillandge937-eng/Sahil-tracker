@@ -413,7 +413,156 @@ Views.nutrition = async (el) => {
     Views.nutrition(el);
   }));
 };
+Views.history = async (el) => {
+  const now = new Date();
+  const defaultMonth = now.toISOString().slice(0, 7);
 
+  el.innerHTML = `
+    <div class="card" style="margin-bottom:18px">
+      <h2>📅 Fitness History</h2>
+      <p style="color:var(--text-dim);font-size:12px">
+        View your daily and weekly fitness data for any month.
+      </p>
+      <input type="month" id="historyMonth" value="${defaultMonth}">
+    </div>
+
+    <div id="historyContent">
+      <div class="empty">Loading history...</div>
+    </div>
+  `;
+
+  const loadHistory = async () => {
+    const month = document.getElementById('historyMonth').value;
+    if (!month) return;
+
+    const box = document.getElementById('historyContent');
+    box.innerHTML = '<div class="empty">Loading history...</div>';
+
+    try {
+      const data = await Api.history.month(month);
+
+      const m = data.monthly;
+      const daily = data.daily;
+
+      // Monday-Sunday weekly grouping
+      const weeks = {};
+
+      daily.forEach(day => {
+        const date = new Date(day.date);
+        const dayOfWeek = date.getDay();
+        const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+
+        const monday = new Date(date);
+        monday.setDate(date.getDate() + diff);
+        monday.setHours(0, 0, 0, 0);
+
+        const key = monday.getTime();
+
+        if (!weeks[key]) {
+          weeks[key] = {
+            start: monday,
+            workouts: 0,
+            workout_calories: 0,
+            workout_minutes: 0,
+            nutrition_calories: 0
+          };
+        }
+
+        weeks[key].workouts += day.workout_count;
+        weeks[key].workout_calories += day.workout_calories;
+        weeks[key].workout_minutes += day.workout_minutes;
+        weeks[key].nutrition_calories += day.nutrition_calories;
+      });
+
+      const weekRows = Object.values(weeks)
+        .sort((a, b) => a.start - b.start)
+        .map((w, i) => {
+          const end = new Date(w.start);
+          end.setDate(end.getDate() + 6);
+
+          return `
+            <div class="list-item">
+              <div>
+                <strong>Week ${i + 1}</strong>
+                <div style="color:var(--text-dim);font-size:12px">
+                  ${w.start.toLocaleDateString()} - ${end.toLocaleDateString()}
+                </div>
+              </div>
+              <div style="text-align:right;font-size:12px">
+                <div>🏋️ ${w.workouts} workouts</div>
+                <div>🔥 ${w.workout_calories} kcal</div>
+                <div>🍽️ ${w.nutrition_calories} kcal food</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+      const dailyRows = daily.map(day => `
+        <div class="list-item">
+          <div>
+            <strong>${new Date(day.date).toLocaleDateString()}</strong>
+          </div>
+          <div style="text-align:right;font-size:12px">
+            🏋️ ${day.workout_count} workouts |
+            🔥 ${day.workout_calories} kcal |
+            🍽️ ${day.nutrition_calories} kcal
+          </div>
+        </div>
+      `).join('');
+
+      box.innerHTML = `
+        <div class="grid grid-2" style="margin-bottom:18px">
+          <div class="card">
+            <h3>🏋️ Workouts</h3>
+            <div class="stat">${m.workouts}</div>
+          </div>
+
+          <div class="card">
+            <h3>🔥 Workout Calories</h3>
+            <div class="stat">${m.workout_calories}</div>
+          </div>
+
+          <div class="card">
+            <h3>⏱️ Workout Minutes</h3>
+            <div class="stat">${m.workout_minutes}</div>
+          </div>
+
+          <div class="card">
+            <h3>🍽️ Nutrition Calories</h3>
+            <div class="stat">${m.nutrition_calories}</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:18px">
+          <h2>📆 Weekly Monday–Sunday</h2>
+          <div class="list">
+            ${weekRows || '<div class="empty">No weekly data recorded.</div>'}
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>📋 Daily History</h2>
+          <div class="list">
+            ${dailyRows || '<div class="empty">No data recorded for this month.</div>'}
+          </div>
+        </div>
+      `;
+
+      
+    } catch (error) {
+      box.innerHTML = `
+        <div class="empty">
+          Could not load history.
+        </div>
+      `;
+    }
+  };
+
+  document.getElementById('historyMonth')
+    .addEventListener('change', loadHistory);
+
+  await loadHistory();
+};
 // ============================================================
 // AI COACH
 // ============================================================
