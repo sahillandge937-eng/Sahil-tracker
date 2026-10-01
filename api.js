@@ -64,9 +64,13 @@ const Api = (() => {
     nutrition: {
       today: (date) => request(`/api/nutrition${date ? `?date=${date}` : ''}`),
       week: () => request('/api/nutrition?range=week'),
+      month: (month) => request(`/api/nutrition?range=month&month=${month}`),
       create: (data) => jsonPost('/api/nutrition', data),
       remove: (id) => del(`/api/nutrition/${id}`)
     },
+    history: {
+  month: (month) => request(`/api/history?month=${month}`)
+},
 
     progress: {
       get: () => request('/api/progress'),
