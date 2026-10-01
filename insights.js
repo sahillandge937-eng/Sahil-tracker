@@ -16,19 +16,42 @@ const { generateCoachMessages } = require('./coachEngine');
 
 // ------------------------------------------------------------
 // GET /api/dashboard
+// Current month data only
 // ------------------------------------------------------------
 router.get('/dashboard', (req, res) => {
   const userId = getRequestUserId(req);
 
+  const now = new Date();
+
+  const monthStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    1
+  ).getTime();
+
+  const monthEnd = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    1
+  ).getTime();
+
   const weekStart = daysAgo(6);
   const today = startOfDay(Date.now());
 
+  // Current week + current month only
   const weekWorkouts = db.prepare(`
     SELECT *
     FROM workouts
     WHERE user_id = ?
       AND date >= ?
-  `).all(userId, weekStart);
+      AND date >= ?
+      AND date < ?
+  `).all(
+    userId,
+    weekStart,
+    monthStart,
+    monthEnd
+  );
 
   const weeklyCount = weekWorkouts.length;
 
@@ -42,11 +65,18 @@ router.get('/dashboard', (req, res) => {
     0
   );
 
+  // Current month dates only
   const allDates = db.prepare(`
     SELECT date
     FROM workouts
     WHERE user_id = ?
-  `).all(userId).map(r => r.date);
+      AND date >= ?
+      AND date < ?
+  `).all(
+    userId,
+    monthStart,
+    monthEnd
+  ).map(r => r.date);
 
   const streak = computeStreak(allDates);
 
@@ -81,10 +111,14 @@ router.get('/dashboard', (req, res) => {
       WHERE user_id = ?
         AND date >= ?
         AND date < ?
+        AND date >= ?
+        AND date < ?
     `).all(
       userId,
       day,
-      day + 86400000
+      day + 86400000,
+      monthStart,
+      monthEnd
     );
 
     caloriesChart.push({
@@ -101,14 +135,22 @@ router.get('/dashboard', (req, res) => {
     });
   }
 
+  // Current month recent workouts only
   const recentWorkouts = db.prepare(`
     SELECT *
     FROM workouts
     WHERE user_id = ?
+      AND date >= ?
+      AND date < ?
     ORDER BY date DESC
     LIMIT 5
-  `).all(userId);
+  `).all(
+    userId,
+    monthStart,
+    monthEnd
+  );
 
+  // Current month statistics only
   const stats = db.prepare(`
     SELECT
       COUNT(*) AS totalWorkouts,
@@ -116,7 +158,13 @@ router.get('/dashboard', (req, res) => {
       COALESCE(AVG(duration_min), 0) AS avgDuration
     FROM workouts
     WHERE user_id = ?
-  `).get(userId);
+      AND date >= ?
+      AND date < ?
+  `).get(
+    userId,
+    monthStart,
+    monthEnd
+  );
 
   const currentGoals = db.prepare(`
     SELECT *
@@ -131,10 +179,15 @@ router.get('/dashboard', (req, res) => {
 
   res.json({
     date: today,
+
     todaysWorkout,
+
     weeklyCount,
+
     weeklyCalories,
+
     weeklyMinutes,
+
     streak,
 
     weeklyGoal: {
@@ -149,7 +202,9 @@ router.get('/dashboard', (req, res) => {
     },
 
     caloriesChart,
+
     frequencyChart,
+
     recentWorkouts,
 
     stats: {
@@ -160,7 +215,6 @@ router.get('/dashboard', (req, res) => {
 
     currentGoals,
 
-    // FIXED: Coach now uses logged-in user's data
     coachRecommendations:
       generateCoachMessages(userId).slice(0, 3)
   });
@@ -168,21 +222,42 @@ router.get('/dashboard', (req, res) => {
 
 // ------------------------------------------------------------
 // GET /api/analytics?range=7|30|90|365
+// Current month data only
 // ------------------------------------------------------------
 router.get('/analytics', (req, res) => {
   const userId = getRequestUserId(req);
 
+  const now = new Date();
+
+  const monthStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    1
+  ).getTime();
+
+  const monthEnd = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    1
+  ).getTime();
+
   const range = Number(req.query.range) || 30;
-  const cutoff = daysAgo(range - 1);
+
+  const cutoff = Math.max(
+    daysAgo(range - 1),
+    monthStart
+  );
 
   const workouts = db.prepare(`
     SELECT *
     FROM workouts
     WHERE user_id = ?
       AND date >= ?
+      AND date < ?
   `).all(
     userId,
-    cutoff
+    cutoff,
+    monthEnd
   );
 
   const buckets = {};
@@ -208,8 +283,10 @@ router.get('/analytics', (req, res) => {
     }
 
     buckets[key].count += 1;
+
     buckets[key].calories +=
       Number(w.calories || 0);
+
     buckets[key].minutes +=
       Number(w.duration_min || 0);
   });
@@ -230,9 +307,18 @@ router.get('/analytics', (req, res) => {
       workouts.map(w => startOfDay(w.date))
     ).size;
 
+  const daysInCurrentPeriod =
+    Math.max(
+      1,
+      Math.ceil(
+        (Math.min(Date.now(), monthEnd) - cutoff)
+        / 86400000
+      )
+    );
+
   const consistencyPct =
     Math.round(
-      (uniqueDays / range) * 100
+      (uniqueDays / daysInCurrentPeriod) * 100
     );
 
   const muscleRows = db.prepare(`
@@ -246,10 +332,12 @@ router.get('/analytics', (req, res) => {
       ON w.id = we.workout_id
     WHERE w.user_id = ?
       AND w.date >= ?
+      AND w.date < ?
     GROUP BY e.muscle_group
   `).all(
     userId,
-    cutoff
+    cutoff,
+    monthEnd
   );
 
   const muscleDistribution = {};
@@ -270,10 +358,16 @@ router.get('/analytics', (req, res) => {
         ON w.id = we.workout_id
       WHERE we.weight_kg IS NOT NULL
         AND w.user_id = ?
+        AND w.date >= ?
+        AND w.date < ?
       GROUP BY e.id
       ORDER BY weight DESC
       LIMIT 5
-    `).all(userId),
+    `).all(
+      userId,
+      cutoff,
+      monthEnd
+    ),
 
     longestWorkout: db.prepare(`
       SELECT
@@ -282,9 +376,15 @@ router.get('/analytics', (req, res) => {
         date
       FROM workouts
       WHERE user_id = ?
+        AND date >= ?
+        AND date < ?
       ORDER BY duration_min DESC
       LIMIT 1
-    `).get(userId),
+    `).get(
+      userId,
+      cutoff,
+      monthEnd
+    ),
 
     mostCalories: db.prepare(`
       SELECT
@@ -293,17 +393,28 @@ router.get('/analytics', (req, res) => {
         date
       FROM workouts
       WHERE user_id = ?
+        AND date >= ?
+        AND date < ?
       ORDER BY calories DESC
       LIMIT 1
-    `).get(userId)
+    `).get(
+      userId,
+      cutoff,
+      monthEnd
+    )
   };
 
   res.json({
     range,
+
     timeSeries,
+
     typeBreakdown,
+
     consistencyPct,
+
     muscleDistribution,
+
     personalRecords,
 
     totals: {
@@ -331,7 +442,6 @@ router.get('/coach', (req, res) => {
   const userId = getRequestUserId(req);
 
   res.json({
-    // FIXED: Coach now uses logged-in user's data
     messages: generateCoachMessages(userId)
   });
 });
@@ -361,9 +471,10 @@ router.get('/activity', (req, res) => {
 
 // ------------------------------------------------------------
 // GET /api/history?month=YYYY-MM
+// History can show ANY selected month
 // ------------------------------------------------------------
 router.get('/history', (req, res) => {
-  const userId = getRequestUserId(req);
+  const userId = getRequestUserId();
 
   const month =
     String(req.query.month || '');
@@ -394,6 +505,8 @@ router.get('/history', (req, res) => {
   const startTs = start.getTime();
   const endTs = end.getTime();
 
+  // History intentionally ignores current-month filter.
+  // This allows September and other old months to be viewed.
   const workouts = db.prepare(`
     SELECT *
     FROM workouts
