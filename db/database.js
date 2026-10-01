@@ -1,6 +1,6 @@
 // db/database.js
 // Creates (if needed) and opens the SQLite database, defines the schema,
-// and initializes essential base user & exercise data.
+// adds user ownership to personal data, and initializes base data.
 
 const path = require('path');
 const Database = require('better-sqlite3');
@@ -108,54 +108,220 @@ db.exec(`
 `);
 
 // ---------------------------------------------------------------------
+// User Data Migration
+// ---------------------------------------------------------------------
+// Adds user_id to personal-data tables if the existing database
+// does not already have it.
+
+function addUserIdColumn(tableName) {
+  const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
+
+  const hasUserId = columns.some(
+    column => column.name === 'user_id'
+  );
+
+  if (!hasUserId) {
+    db.prepare(
+      `ALTER TABLE ${tableName} ADD COLUMN user_id INTEGER`
+    ).run();
+  }
+}
+
+[
+  'workouts',
+  'weight_logs',
+  'goals',
+  'nutrition',
+  'activity_logs'
+].forEach(addUserIdColumn);
+
+// Existing records belong to the original/default user.
+db.prepare(
+  'UPDATE workouts SET user_id = 1 WHERE user_id IS NULL'
+).run();
+
+db.prepare(
+  'UPDATE weight_logs SET user_id = 1 WHERE user_id IS NULL'
+).run();
+
+db.prepare(
+  'UPDATE goals SET user_id = 1 WHERE user_id IS NULL'
+).run();
+
+db.prepare(
+  'UPDATE nutrition SET user_id = 1 WHERE user_id IS NULL'
+).run();
+
+db.prepare(
+  'UPDATE activity_logs SET user_id = 1 WHERE user_id IS NULL'
+).run();
+
+// ---------------------------------------------------------------------
 // Essential Base Seeding
 // ---------------------------------------------------------------------
 function seed() {
-  const userCount = db.prepare('SELECT COUNT(*) c FROM users').get().c;
+  const userCount = db
+    .prepare('SELECT COUNT(*) c FROM users')
+    .get().c;
 
   if (userCount === 0) {
     db.prepare(`
       INSERT INTO users (
-        id, name, age, height_cm, weight_kg, gender,
-        fitness_goal, activity_level,
-        weekly_workout_target, calorie_target,
-        protein_target, carb_target, fat_target,
-        goal_weight_kg, weight_unit, theme, notifications_enabled
+        id,
+        name,
+        age,
+        height_cm,
+        weight_kg,
+        gender,
+        fitness_goal,
+        activity_level,
+        weekly_workout_target,
+        calorie_target,
+        protein_target,
+        carb_target,
+        fat_target,
+        goal_weight_kg,
+        weight_unit,
+        theme,
+        notifications_enabled
       )
       VALUES (
-        1, 'Athlete', 22, 172, 70, 'unspecified',
-        'Build strength & endurance', 'moderately active',
-        4, 2200, 150, 250, 70,
-        66, 'kg', 'dark', 1
+        1,
+        'Athlete',
+        22,
+        172,
+        70,
+        'unspecified',
+        'Build strength & endurance',
+        'moderately active',
+        4,
+        2200,
+        150,
+        250,
+        70,
+        66,
+        'kg',
+        'dark',
+        1
       )
     `).run();
   }
 
-  const exerciseCount = db.prepare(
-    'SELECT COUNT(*) c FROM exercises'
-  ).get().c;
+  const exerciseCount = db
+    .prepare('SELECT COUNT(*) c FROM exercises')
+    .get().c;
 
   if (exerciseCount === 0) {
     const exercises = [
-      ['Bench Press', 'Chest', 'Strength', 'Intermediate', 'Barbell press performed lying on a flat bench, targeting the chest, shoulders and triceps.'],
-      ['Squats', 'Legs', 'Strength', 'Intermediate', 'Compound lower-body movement targeting quads, glutes and hamstrings.'],
-      ['Deadlift', 'Back', 'Strength', 'Advanced', 'Full posterior-chain lift from the floor, key for total-body strength.'],
-      ['Pull Ups', 'Back', 'Bodyweight', 'Intermediate', 'Vertical pulling movement targeting the lats and biceps.'],
-      ['Push Ups', 'Chest', 'Bodyweight', 'Beginner', 'Classic bodyweight press for chest, shoulders and triceps.'],
-      ['Shoulder Press', 'Shoulders', 'Strength', 'Intermediate', 'Overhead press targeting the deltoids and triceps.'],
-      ['Bicep Curl', 'Arms', 'Strength', 'Beginner', 'Isolation movement for the biceps using dumbbells or a barbell.'],
-      ['Tricep Extension', 'Arms', 'Strength', 'Beginner', 'Isolation movement targeting the triceps.'],
-      ['Lunges', 'Legs', 'Bodyweight', 'Beginner', 'Single-leg movement building quad, glute and balance strength.'],
-      ['Running', 'Cardio', 'Cardio', 'Beginner', 'Steady-state or interval cardio for endurance and calorie burn.'],
-      ['Cycling', 'Cardio', 'Cardio', 'Beginner', 'Low-impact cardio for endurance and leg conditioning.'],
-      ['Plank', 'Core', 'Bodyweight', 'Beginner', 'Isometric core hold that builds trunk stability.'],
-      ['Lat Pulldown', 'Back', 'Strength', 'Beginner', 'Machine pulldown targeting the lats, a pull-up alternative.'],
-      ['Leg Press', 'Legs', 'Strength', 'Beginner', 'Machine-based compound push for the quads, glutes and hamstrings.']
+      [
+        'Bench Press',
+        'Chest',
+        'Strength',
+        'Intermediate',
+        'Barbell press performed lying on a flat bench, targeting the chest, shoulders and triceps.'
+      ],
+      [
+        'Squats',
+        'Legs',
+        'Strength',
+        'Intermediate',
+        'Compound lower-body movement targeting quads, glutes and hamstrings.'
+      ],
+      [
+        'Deadlift',
+        'Back',
+        'Strength',
+        'Advanced',
+        'Full posterior-chain lift from the floor, key for total-body strength.'
+      ],
+      [
+        'Pull Ups',
+        'Back',
+        'Bodyweight',
+        'Intermediate',
+        'Vertical pulling movement targeting the lats and biceps.'
+      ],
+      [
+        'Push Ups',
+        'Chest',
+        'Bodyweight',
+        'Beginner',
+        'Classic bodyweight press for chest, shoulders and triceps.'
+      ],
+      [
+        'Shoulder Press',
+        'Shoulders',
+        'Strength',
+        'Intermediate',
+        'Overhead press targeting the deltoids and triceps.'
+      ],
+      [
+        'Bicep Curl',
+        'Arms',
+        'Strength',
+        'Beginner',
+        'Isolation movement for the biceps using dumbbells or a barbell.'
+      ],
+      [
+        'Tricep Extension',
+        'Arms',
+        'Strength',
+        'Beginner',
+        'Isolation movement targeting the triceps.'
+      ],
+      [
+        'Lunges',
+        'Legs',
+        'Bodyweight',
+        'Beginner',
+        'Single-leg movement building quad, glute and balance strength.'
+      ],
+      [
+        'Running',
+        'Cardio',
+        'Cardio',
+        'Beginner',
+        'Steady-state or interval cardio for endurance and calorie burn.'
+      ],
+      [
+        'Cycling',
+        'Cardio',
+        'Cardio',
+        'Beginner',
+        'Low-impact cardio for endurance and leg conditioning.'
+      ],
+      [
+        'Plank',
+        'Core',
+        'Bodyweight',
+        'Beginner',
+        'Isometric core hold that builds trunk stability.'
+      ],
+      [
+        'Lat Pulldown',
+        'Back',
+        'Strength',
+        'Beginner',
+        'Machine pulldown targeting the lats, a pull-up alternative.'
+      ],
+      [
+        'Leg Press',
+        'Legs',
+        'Strength',
+        'Beginner',
+        'Machine-based compound push for the quads, glutes and hamstrings.'
+      ]
     ];
 
     const insert = db.prepare(`
       INSERT INTO exercises
-      (name, muscle_group, category, difficulty, description)
+      (
+        name,
+        muscle_group,
+        category,
+        difficulty,
+        description
+      )
       VALUES (?, ?, ?, ?, ?)
     `);
 
@@ -178,11 +344,11 @@ function seedPreviousMonthData() {
     SELECT COUNT(*) c
     FROM workouts
     WHERE is_demo = 1
+      AND user_id = 1
       AND date >= ?
       AND date < ?
   `).get(start, end).c;
 
-  // If September demo workouts already exist, do not insert them again.
   if (workoutExists === 0) {
     const workouts = [
       ['Run', 30, 5, 320, 2],
@@ -207,9 +373,10 @@ function seedPreviousMonthData() {
         difficulty,
         calories,
         notes,
-        is_demo
+        is_demo,
+        user_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1)
     `);
 
     workouts.forEach((w) => {
@@ -220,7 +387,7 @@ function seedPreviousMonthData() {
         w[2],
         3,
         w[3],
-        'Sample historical workout',
+        'Sample historical workout'
       );
     });
   }
@@ -229,11 +396,11 @@ function seedPreviousMonthData() {
     SELECT COUNT(*) c
     FROM nutrition
     WHERE is_demo = 1
+      AND user_id = 1
       AND date >= ?
       AND date < ?
   `).get(start, end).c;
 
-  // Add sample nutrition records only if they do not already exist.
   if (nutritionExists === 0) {
     const nutrition = [
       ['Breakfast', 450, 18, 60, 15, 2],
@@ -276,9 +443,10 @@ function seedPreviousMonthData() {
         fat_g,
         meal_type,
         date,
-        is_demo
+        is_demo,
+        user_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1)
     `);
 
     nutrition.forEach((n) => {
