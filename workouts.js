@@ -1,9 +1,14 @@
-// routes/workouts.js
 // workouts.js
 const express = require('express');
 const router = express.Router();
-const { db, estimateCalories, logActivity, getUser } = require('./utils');
 
+const {
+  db,
+  estimateCalories,
+  logActivity,
+  getUser,
+  getRequestUserId
+} = require('./utils');
 
 const VALID_TYPES = ['Run', 'Strength', 'Cycle', 'HIIT', 'Yoga', 'Swim'];
 
@@ -20,12 +25,12 @@ function attachExercises(workout) {
   return workout;
 }
 
-// GET /api/workouts
+// GET /api/workouts?search=&type=&from=&to=
 router.get('/', (req, res) => {
   const { search, type, from, to } = req.query;
 
-  let sql = 'SELECT * FROM workouts WHERE 1=1';
-  const params = [];
+  let sql = 'SELECT * FROM workouts WHERE user_id = ?';
+  const params = [getRequestUserId(req)];
 
   if (type) {
     sql += ' AND type = ?';
@@ -59,12 +64,20 @@ router.get('/', (req, res) => {
 
 // GET /api/workouts/:id
 router.get('/:id', (req, res) => {
-  const workout = db
-    .prepare('SELECT * FROM workouts WHERE id = ?')
-    .get(req.params.id);
+  const workout = db.prepare(`
+    SELECT *
+    FROM workouts
+    WHERE id = ?
+      AND user_id = ?
+  `).get(
+    req.params.id,
+    getRequestUserId(req)
+  );
 
   if (!workout) {
-    return res.status(404).json({ error: 'Workout not found' });
+    return res.status(404).json({
+      error: 'Workout not found'
+    });
   }
 
   res.json(attachExercises(workout));
@@ -100,7 +113,8 @@ router.post('/', (req, res) => {
   const diff = Number(difficulty) || 3;
   const ts = Number(date) || Date.now();
 
-  const user = getUser();
+  const userId = getRequestUserId(req);
+  const user = getUser(userId);
 
   const finalCalories =
     Number.isFinite(Number(calories)) && Number(calories) > 0
@@ -112,8 +126,6 @@ router.post('/', (req, res) => {
           user ? user.weight_kg : 70
         );
 
-  // IMPORTANT:
-  // Save the workout with user_id = 1
   const insertWorkout = db.prepare(`
     INSERT INTO workouts
     (
@@ -158,7 +170,7 @@ router.post('/', (req, res) => {
       diff,
       finalCalories,
       notes || '',
-      user ? user.id : 1
+      userId
     );
 
     const workoutId = info.lastInsertRowid;
@@ -198,11 +210,12 @@ router.post('/', (req, res) => {
     logActivity(
       'workout',
       `Logged a ${type} workout (${dur} min, ${finalCalories} kcal)`,
-      ts
+      ts,
+      userId
     );
 
     prMessages.forEach(msg =>
-      logActivity('pr', msg, ts)
+      logActivity('pr', msg, ts, userId)
     );
 
     return workoutId;
@@ -212,8 +225,13 @@ router.post('/', (req, res) => {
 
   const workout = attachExercises(
     db
-      .prepare('SELECT * FROM workouts WHERE id = ?')
-      .get(workoutId)
+      .prepare(`
+        SELECT *
+        FROM workouts
+        WHERE id = ?
+          AND user_id = ?
+      `)
+      .get(workoutId, userId)
   );
 
   res.status(201).json(workout);
@@ -221,9 +239,17 @@ router.post('/', (req, res) => {
 
 // PUT /api/workouts/:id
 router.put('/:id', (req, res) => {
-  const existing = db
-    .prepare('SELECT * FROM workouts WHERE id = ?')
-    .get(req.params.id);
+  const userId = getRequestUserId(req);
+
+  const existing = db.prepare(`
+    SELECT *
+    FROM workouts
+    WHERE id = ?
+      AND user_id = ?
+  `).get(
+    req.params.id,
+    userId
+  );
 
   if (!existing) {
     return res.status(404).json({
@@ -267,6 +293,7 @@ router.put('/:id', (req, res) => {
       calories=?,
       notes=?
     WHERE id = ?
+      AND user_id = ?
   `).run(
     finalType,
     ts,
@@ -279,7 +306,8 @@ router.put('/:id', (req, res) => {
     notes !== undefined
       ? notes
       : existing.notes,
-    req.params.id
+    req.params.id,
+    userId
   );
 
   if (Array.isArray(exercises)) {
@@ -318,8 +346,13 @@ router.put('/:id', (req, res) => {
 
   const updated = attachExercises(
     db
-      .prepare('SELECT * FROM workouts WHERE id = ?')
-      .get(req.params.id)
+      .prepare(`
+        SELECT *
+        FROM workouts
+        WHERE id = ?
+          AND user_id = ?
+      `)
+      .get(req.params.id, userId)
   );
 
   res.json(updated);
@@ -327,9 +360,14 @@ router.put('/:id', (req, res) => {
 
 // DELETE /api/workouts/:id
 router.delete('/:id', (req, res) => {
-  const info = db
-    .prepare('DELETE FROM workouts WHERE id = ?')
-    .run(req.params.id);
+  const info = db.prepare(`
+    DELETE FROM workouts
+    WHERE id = ?
+      AND user_id = ?
+  `).run(
+    req.params.id,
+    getRequestUserId(req)
+  );
 
   if (info.changes === 0) {
     return res.status(404).json({
