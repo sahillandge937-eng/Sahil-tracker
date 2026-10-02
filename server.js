@@ -1,37 +1,22 @@
-// server.js
-// PULSE - AI Fitness Tracker. Entry point: wires up Express, the SQLite
-// database (created automatically on first run), and every API route.
-
 const express = require('express');
-const cors = require('cors');
 const path = require('path');
-
-require('./db/database'); // creates pulse.db and seeds demo data on first run
-
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname));
 
-app.use('/api/workouts', require('./workouts'));
-app.use('/api/exercises', require('./exercises'));
-app.use('/api/goals', require('./goals'));
-app.use('/api/nutrition', require('./nutrition'));
-app.use('/api/progress', require('./progress'));
-app.use('/api', require('./user')); // /api/profile, /api/settings
-app.use('/api/auth', require('./auth'));
-app.use('/api', require('./insights'));  // /api/dashboard, /api/analytics, /api/coach, /api/activity
+// Public directory absolute path setup
+const publicPath = path.join(__dirname, 'public');
+app.use(express.static(publicPath));
 
-// Any unmatched /api route -> clean 404 JSON instead of falling through to the SPA.
-app.use('/api', (req, res) => res.status(404).json({ error: 'Unknown API route' }));
-
-// Everything else serves the single-page app shell; client-side JS handles routing.
-app.get('*', (req, res) => {
- res.sendFile(path.join(__dirname, 'index.html'));
+// API routes handle hone ke baad baaki sabke liye index.html deliver karo
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  res.sendFile(path.join(publicPath, 'index.html'));
 });
 
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`PULSE server running at http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
