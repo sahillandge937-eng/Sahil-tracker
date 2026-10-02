@@ -36,34 +36,77 @@
       background: none;
       border: none;
       color: var(--text-main);
-      font-size: 1.4rem;
+      font-size: 1.5rem;
       cursor: pointer;
     }
     .brand { font-size: 1.3rem; font-weight: 900; letter-spacing: 0.5px; }
 
-    /* Navigation Menu Drawer */
-    .nav-menu {
-      display: none;
-      background: #111512;
-      border-bottom: 1px solid var(--card-border);
-      padding: 12px 20px;
-      gap: 10px;
-      overflow-x: auto;
-      white-space: nowrap;
+    /* Backdrop Overlay */
+    .drawer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(3px);
+      z-index: 200;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
     }
-    .nav-menu.open { display: flex; }
+    .drawer-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Left Side Navigation Drawer */
+    .nav-drawer {
+      position: fixed;
+      top: 0;
+      left: -280px;
+      width: 260px;
+      height: 100vh;
+      background: #111512;
+      border-right: 1px solid var(--card-border);
+      z-index: 201;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: left 0.3s ease;
+      box-shadow: 4px 0 15px rgba(0,0,0,0.5);
+    }
+    .nav-drawer.open {
+      left: 0;
+    }
+
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .drawer-title { font-size: 1.2rem; font-weight: 900; color: var(--green-accent); }
+    .close-btn { background: none; border: none; color: var(--text-muted); font-size: 1.3rem; cursor: pointer; }
+
     .nav-link {
       color: var(--text-muted);
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       font-weight: 600;
-      padding: 6px 12px;
-      border-radius: 8px;
+      padding: 12px 14px;
+      border-radius: 10px;
       cursor: pointer;
-      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s;
     }
     .nav-link.active, .nav-link:hover {
       color: var(--green-accent);
-      background: rgba(16, 185, 129, 0.1);
+      background: rgba(16, 185, 129, 0.12);
     }
 
     .container {
@@ -137,25 +180,32 @@
 
   <!-- Top Navigation Header -->
   <header>
-    <button class="menu-btn" onclick="toggleMenu()">☰</button>
+    <button class="menu-btn" onclick="openDrawer()">☰</button>
     <div class="brand">PULSE</div>
   </header>
 
-  <!-- Options Menu -->
-  <nav class="nav-menu" id="navMenu">
-    <span class="nav-link active" onclick="showTab('dashboard')">Dashboard</span>
-    <span class="nav-link" onclick="showTab('workouts')">Workouts</span>
-    <span class="nav-link" onclick="showTab('exercises')">Exercises</span>
-    <span class="nav-link" onclick="showTab('progress')">Progress</span>
-    <span class="nav-link" onclick="showTab('analytics')">Analytics</span>
-    <span class="nav-link" onclick="showTab('goals')">Goals</span>
-    <span class="nav-link" onclick="showTab('nutrition')">Nutrition</span>
-    <span class="nav-link" onclick="showTab('coach')">AI Coach</span>
-  </nav>
+  <!-- Dark Backdrop Overlay -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+  <!-- Left Side Navigation Drawer -->
+  <aside class="nav-drawer" id="navDrawer">
+    <div class="drawer-header">
+      <span class="drawer-title">PULSE AI</span>
+      <button class="close-btn" onclick="closeDrawer()">✕</button>
+    </div>
+    <span class="nav-link active" onclick="showTab('dashboard', this)"><span>📊</span> Dashboard</span>
+    <span class="nav-link" onclick="showTab('workouts', this)"><span>🏋️</span> Workouts</span>
+    <span class="nav-link" onclick="showTab('exercises', this)"><span>📚</span> Exercises</span>
+    <span class="nav-link" onclick="showTab('progress', this)"><span>📈</span> Progress</span>
+    <span class="nav-link" onclick="showTab('analytics', this)"><span>📉</span> Analytics</span>
+    <span class="nav-link" onclick="showTab('goals', this)"><span>🎯</span> Goals</span>
+    <span class="nav-link" onclick="showTab('nutrition', this)"><span>🥗</span> Nutrition</span>
+    <span class="nav-link" onclick="showTab('coach', this)"><span>🤖</span> AI Coach</span>
+  </aside>
 
   <main class="container">
 
-    <!-- TAB 1: DASHBOARD (Exact Photo Layout) -->
+    <!-- TAB 1: DASHBOARD -->
     <div id="tab-dashboard" class="tab-content active">
       <div class="card">
         <div class="card-title-row">
@@ -263,17 +313,24 @@
   </main>
 
   <script>
-    function toggleMenu() {
-      const menu = document.getElementById('navMenu');
-      menu.classList.toggle('open');
+    function openDrawer() {
+      document.getElementById('navDrawer').classList.add('open');
+      document.getElementById('drawerOverlay').classList.add('active');
     }
 
-    function showTab(tabName) {
+    function closeDrawer() {
+      document.getElementById('navDrawer').classList.remove('open');
+      document.getElementById('drawerOverlay').classList.remove('active');
+    }
+
+    function showTab(tabName, el) {
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
       
       document.getElementById(`tab-${tabName}`).classList.add('active');
-      event.target.classList.add('active');
+      if(el) el.classList.add('active');
+      
+      closeDrawer();
     }
   </script>
 </body>
