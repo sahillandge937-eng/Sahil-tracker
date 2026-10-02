@@ -3,291 +3,211 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PULSE - AI Fitness Tracker</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>PULSE</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-dark: #0f172a;
-      --card-bg: #1e293b;
-      --accent: #10b981;
-      --accent-hover: #059669;
-      --text-main: #f8fafc;
-      --text-sub: #94a3b8;
-      --border: #334155;
+      --bg: #0c0f0d;
+      --card-bg: #161a17;
+      --card-border: #222924;
+      --text-main: #f1f5f2;
+      --text-muted: #8b968f;
+      --green-accent: #10b981;
     }
+
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; }
-    body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; font-size: 0.9rem; }
-    
-    /* Top Navbar */
-    .navbar { background: #1e293b; border-bottom: 1px solid var(--border); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
-    .logo { font-size: 1.4rem; font-weight: 800; color: var(--accent); cursor: pointer; display: flex; align-items: center; gap: 8px; }
-    .nav-links { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
-    .nav-btn { color: var(--text-sub); text-decoration: none; font-size: 0.82rem; font-weight: 600; padding: 8px 12px; border-radius: 8px; white-space: nowrap; transition: all 0.2s; cursor: pointer; }
-    .nav-btn:hover, .nav-btn.active { color: var(--accent); background: rgba(16, 185, 129, 0.12); font-weight: 700; }
-    
-    /* Layout */
-    .container { max-width: 1250px; margin: 25px auto; padding: 0 15px; }
-    .page-section { display: none; }
-    .page-section.active { display: block; animation: fadeIn 0.25s ease-in-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-    
-    .section-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 20px; color: var(--text-main); }
-    .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 25px; }
-    .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-    @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
-    
-    /* Cards & Boxes */
-    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px; transition: all 0.2s; }
-    .card:hover { border-color: rgba(16, 185, 129, 0.4); }
-    .card-label { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; color: var(--text-sub); margin-bottom: 6px; }
-    .card-val { font-size: 1.8rem; font-weight: 800; color: var(--text-main); }
-    .card-sub { font-size: 0.78rem; color: var(--accent); margin-top: 4px; font-weight: 500; }
-    
-    .box { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 22px; margin-bottom: 20px; }
-    .box-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
-    
-    /* Forms & Inputs */
-    .form-group { margin-bottom: 14px; }
-    .form-group label { display: block; font-size: 0.82rem; font-weight: 500; color: var(--text-sub); margin-bottom: 5px; }
-    .form-control { width: 100%; background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 10px 12px; border-radius: 8px; font-size: 0.88rem; outline: none; }
-    .form-control:focus { border-color: var(--accent); }
-    
-    /* Buttons */
-    .btn { background: var(--accent); color: #0f172a; border: none; padding: 10px 18px; font-weight: 700; font-size: 0.88rem; border-radius: 8px; cursor: pointer; transition: all 0.2s; text-align: center; display: inline-block; }
-    .btn:hover { background: var(--accent-hover); }
-    .btn-block { width: 100%; }
-    
-    /* Lists */
-    .item-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
-    .item-row:last-child { border: none; }
-    .item-title { font-weight: 600; color: var(--text-main); }
-    .item-sub { font-size: 0.78rem; color: var(--text-sub); }
-    .item-val { font-weight: 700; color: var(--accent); font-size: 0.92rem; text-align: right; }
+    body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; padding-bottom: 40px; }
+
+    /* Top Header */
+    header {
+      background: #111512;
+      border-bottom: 1px solid var(--card-border);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .menu-btn {
+      background: none;
+      border: none;
+      color: var(--text-main);
+      font-size: 1.4rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+    .brand {
+      font-size: 1.3rem;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    .card-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .card-icon { font-size: 1.2rem; }
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .card-sub {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 14px;
+    }
+
+    .select-input {
+      width: 100%;
+      background: #111512;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .stat-number {
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin-top: 8px;
+    }
+
+    /* Weekly Card Inner Box */
+    .week-box {
+      background: #111512;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 10px;
+    }
+    .week-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+    .week-meta {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .week-stats {
+      display: flex;
+      gap: 12px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
   </style>
 </head>
 <body>
-  <div id="app">
-    <!-- Navbar -->
-    <header class="navbar">
-      <div class="logo" onclick="switchPage('dashboard')">⚡ PULSE AI</div>
-      <nav class="nav-links">
-        <span class="nav-btn active" onclick="switchPage('dashboard')">Dashboard</span>
-        <span class="nav-btn" onclick="switchPage('workouts')">Workouts</span>
-        <span class="nav-btn" onclick="switchPage('exercises')">Exercises</span>
-        <span class="nav-btn" onclick="switchPage('progress')">Progress</span>
-        <span class="nav-btn" onclick="switchPage('analytics')">Analytics</span>
-        <span class="nav-btn" onclick="switchPage('goals')">Goals</span>
-        <span class="nav-btn" onclick="switchPage('nutrition')">Nutrition</span>
-        <span class="nav-btn" onclick="switchPage('coach')">PULSE AI Coach</span>
-      </nav>
-    </header>
 
-    <main class="container">
-      
-      <!-- PAGE: DASHBOARD -->
-      <section id="page-dashboard" class="page-section active">
-        <div class="grid-4">
-          <div class="card">
-            <div class="card-label">Daily Calories</div>
-            <div class="card-val" id="dashCal">1,840 <span style="font-size:0.9rem; font-weight:400; color:var(--text-sub);">kcal</span></div>
-            <div class="card-sub">↑ 8% vs average</div>
-          </div>
-          <div class="card">
-            <div class="card-label">Active Time</div>
-            <div class="card-val" id="dashTime">52 <span style="font-size:0.9rem; font-weight:400; color:var(--text-sub);">mins</span></div>
-            <div class="card-sub">Target: 60 mins</div>
-          </div>
-          <div class="card">
-            <div class="card-label">Weekly Streak</div>
-            <div class="card-val">5 Days</div>
-            <div class="card-sub">🔥 Consistency Active</div>
-          </div>
-          <div class="card">
-            <div class="card-label">AI Fitness Score</div>
-            <div class="card-val" style="color:var(--accent);">91 / 100</div>
-            <div class="card-sub" style="color:var(--text-sub);">Optimal Training Balance</div>
-          </div>
-        </div>
+  <!-- Top Navigation -->
+  <header>
+    <button class="menu-btn">☰</button>
+    <div class="brand">PULSE</div>
+  </header>
 
-        <div class="main-grid">
-          <div>
-            <div class="box">
-              <div class="box-title">Weekly Calorie Trend</div>
-              <canvas id="dashChart" height="110"></canvas>
-            </div>
-            <div class="box">
-              <div class="box-title">Recent Activity History</div>
-              <div id="recentLogs">
-                <div class="item-row">
-                  <div>
-                    <div class="item-title">Bench Press & Arms</div>
-                    <div class="item-sub">Strength Training • 45 mins</div>
-                  </div>
-                  <div><div class="item-val">+340 kcal</div></div>
-                </div>
-                <div class="item-row">
-                  <div>
-                    <div class="item-title">Morning HIIT Run</div>
-                    <div class="item-sub">Cardio / Jogging • 30 mins</div>
-                  </div>
-                  <div><div class="item-val">+280 kcal</div></div>
-                </div>
-              </div>
-            </div>
-          </div>
+  <main class="container">
 
-          <div>
-            <div class="box">
-              <div class="box-title">Quick Add Workout</div>
-              <form id="quickAddForm">
-                <div class="form-group">
-                  <label>Workout Name</label>
-                  <input type="text" id="wName" class="form-control" placeholder="Leg Day / Chest" required>
-                </div>
-                <div class="form-group">
-                  <label>Duration (Minutes)</label>
-                  <input type="number" id="wDur" class="form-control" placeholder="45" required>
-                </div>
-                <div class="form-group">
-                  <label>Calories Burned</label>
-                  <input type="number" id="wCal" class="form-control" placeholder="320" required>
-                </div>
-                <button type="submit" class="btn btn-block">Add Workout</button>
-              </form>
-            </div>
+    <!-- Fitness History Selector -->
+    <div class="card">
+      <div class="card-title-row">
+        <span class="card-icon">📅</span>
+        <span class="card-title">Fitness History</span>
+      </div>
+      <div class="card-sub">View your daily and weekly fitness data for any month.</div>
+      <select class="select-input" id="monthSelect">
+        <option value="2026-10">October 2026</option>
+        <option value="2026-09">September 2026</option>
+        <option value="2026-08">August 2026</option>
+      </select>
+    </div>
+
+    <!-- Workouts Count -->
+    <div class="card">
+      <div class="card-title-row">
+        <span class="card-icon">🏋️</span>
+        <span class="card-title">Workouts</span>
+      </div>
+      <div class="stat-number" id="workoutCount">0</div>
+    </div>
+
+    <!-- Workout Calories -->
+    <div class="card">
+      <div class="card-title-row">
+        <span class="card-icon">🔥</span>
+        <span class="card-title">Workout Calories</span>
+      </div>
+      <div class="stat-number" id="workoutCal">0</div>
+    </div>
+
+    <!-- Workout Minutes -->
+    <div class="card">
+      <div class="card-title-row">
+        <span class="card-icon">⏱️</span>
+        <span class="card-title">Workout Minutes</span>
+      </div>
+      <div class="stat-number" id="workoutMin">0</div>
+    </div>
+
+    <!-- Nutrition Calories -->
+    <div class="card">
+      <div class="card-title-row">
+        <span class="card-icon">🍽️</span>
+        <span class="card-title">Nutrition Calories</span>
+      </div>
+      <div class="stat-number" id="nutritionCal">0</div>
+    </div>
+
+    <!-- Weekly Monday-Sunday -->
+    <div class="card">
+      <div class="card-title-row">
+        <span class="card-icon">📅</span>
+        <span class="card-title">Weekly Monday–Sunday</span>
+      </div>
+      <div class="week-box">
+        <div class="week-header">
+          <span>Week 1</span>
+          <div class="week-stats">
+            <span>🏋️ 0 workouts</span>
+            <span>🔥 0 kcal</span>
           </div>
         </div>
-      </section>
+        <div class="week-meta">9/28/2026 – 10/4/2026</div>
+      </div>
+    </div>
 
-      <!-- PAGE: WORKOUTS -->
-      <section id="page-workouts" class="page-section">
-        <div class="section-title">Workout Management</div>
-        <div class="box">
-          <div class="box-title">All Logged Workouts</div>
-          <div id="fullWorkoutList">
-            <div class="item-row">
-              <div>
-                <div class="item-title">Bench Press & Arms</div>
-                <div class="item-sub">Strength • 45 mins • Today</div>
-              </div>
-              <div class="item-val">+340 kcal</div>
-            </div>
-          </div>
-        </div>
-      </section>
+  </main>
 
-      <!-- PAGE: EXERCISES -->
-      <section id="page-exercises" class="page-section">
-        <div class="section-title">Exercise Library</div>
-        <div class="grid-4">
-          <div class="card"><div class="card-label">Chest & Shoulders</div><div style="font-weight:700; margin-top:5px;">Bench Press, Pushups, Overhead Press</div></div>
-          <div class="card"><div class="card-label">Back & Biceps</div><div style="font-weight:700; margin-top:5px;">Pullups, Lat Pulldowns, Bicep Curls</div></div>
-          <div class="card"><div class="card-label">Legs & Core</div><div style="font-weight:700; margin-top:5px;">Squats, Lunges, Planks</div></div>
-          <div class="card"><div class="card-label">Cardio</div><div style="font-weight:700; margin-top:5px;">Treadmill Run, Cycling, Jump Rope</div></div>
-        </div>
-      </section>
-
-      <!-- PAGE: PROGRESS -->
-      <section id="page-progress" class="page-section">
-        <div class="section-title">Body Weight & Strength Progress</div>
-        <div class="box">
-          <div class="box-title">Weight Log History</div>
-          <canvas id="weightChart" height="100"></canvas>
-        </div>
-      </section>
-
-      <!-- PAGE: ANALYTICS -->
-      <section id="page-analytics" class="page-section">
-        <div class="section-title">Analytics & Training Patterns</div>
-        <div class="box">
-          <div class="box-title">Monthly Workout Distribution</div>
-          <canvas id="analyticsChart" height="100"></canvas>
-        </div>
-      </section>
-
-      <!-- PAGE: GOALS -->
-      <section id="page-goals" class="page-section">
-        <div class="section-title">Active Goals</div>
-        <div class="box">
-          <div class="item-row">
-            <div><div class="item-title">Weekly Workout Target</div><div class="item-sub">Target: 5 sessions / week</div></div>
-            <div class="item-val">4 / 5 Done</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- PAGE: NUTRITION -->
-      <section id="page-nutrition" class="page-section">
-        <div class="section-title">Daily Nutrition Log</div>
-        <div class="box">
-          <div class="box-title">Macros Summary</div>
-          <p style="color:var(--text-sub);">Protein: 140g | Carbs: 210g | Fats: 55g</p>
-        </div>
-      </section>
-
-      <!-- PAGE: COACH -->
-      <section id="page-coach" class="page-section">
-        <div class="section-title">🤖 PULSE AI Coach (Rule-Based Engine)</div>
-        <div class="box" style="border-color: rgba(16, 185, 129, 0.4);">
-          <div class="box-title" style="color:var(--accent);">Personalized Coaching Insight</div>
-          <p style="font-size:0.95rem; line-height:1.6; color:var(--text-main);">
-            "Your strength training frequency is consistent! Ensure you take adequate rest today and drink 2.5L water for maximum recovery."
-          </p>
-        </div>
-      </section>
-
-    </main>
-  </div>
-
-  <script>
-    // SPA Navigation Logic
-    function switchPage(pageId) {
-      document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      
-      const targetPage = document.getElementById(`page-${pageId}`);
-      if (targetPage) targetPage.classList.add('active');
-      
-      event.target.classList.add('active');
-    }
-
-    // Chart Render
-    document.addEventListener("DOMContentLoaded", () => {
-      const ctx1 = document.getElementById('dashChart')?.getContext('2d');
-      if(ctx1) {
-        new Chart(ctx1, {
-          type: 'bar',
-          data: {
-            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-            datasets: [{ label: 'Calories', data: [320, 450, 290, 500, 420, 610, 380], backgroundColor: '#10b981', borderRadius: 5 }]
-          },
-          options: { responsive: true, plugins: { legend: { display: false } } }
-        });
-      }
-    });
-
-    // Add Workout Form
-    document.getElementById('quickAddForm')?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const name = document.getElementById('wName').value;
-      const dur = document.getElementById('wDur').value;
-      const cal = document.getElementById('wCal').value;
-
-      const newRow = `
-        <div class="item-row">
-          <div>
-            <div class="item-title">${name}</div>
-            <div class="item-sub">Custom Activity • ${dur} mins</div>
-          </div>
-          <div><div class="item-val">+${cal} kcal</div></div>
-        </div>
-      `;
-      document.getElementById('recentLogs').insertAdjacentHTML('afterbegin', newRow);
-      document.getElementById('quickAddForm').reset();
-    });
-  </script>
 </body>
 </html>
