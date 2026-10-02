@@ -1,29 +1,46 @@
-// js/app.js - Clean App Router
-document.addEventListener('DOMContentLoaded', async () => {
-  const content = document.getElementById('content');
-  
-  // Navigation handling
-  async function navigate(route) {
-    const viewName = route || 'dashboard';
-    if (window.Views && typeof window.Views[viewName] === 'function') {
-      try {
-        await window.Views[viewName](content);
-      } catch (err) {
-        console.error('Error rendering view:', err);
-        if (content) content.innerHTML = '<div class="empty">Error loading page content.</div>';
-      }
-    } else {
-      if (content) content.innerHTML = '<div class="empty">Page not found.</div>';
-    }
+document.addEventListener("DOMContentLoaded", () => {
+  fetchWorkouts();
+
+  const form = document.getElementById("workoutForm");
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("wName").value;
+      const duration = document.getElementById("wDuration").value;
+      const calories = document.getElementById("wCalories").value;
+
+      await fetch("/api/workouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, duration, calories })
+      });
+
+      form.reset();
+      fetchWorkouts();
+    });
   }
-
-  // Handle Hash Changes
-  window.addEventListener('hashchange', () => {
-    const hash = window.location.hash.replace('#', '');
-    navigate(hash);
-  });
-
-  // Initial Load
-  const initialRoute = window.location.hash.replace('#', '') || 'dashboard';
-  await navigate(initialRoute);
 });
+
+async function fetchWorkouts() {
+  try {
+    const res = await fetch("/api/workouts");
+    const data = await res.json();
+    const list = document.getElementById("workoutList");
+    
+    if (list) {
+      list.innerHTML = data.map(w => `
+        <div class="item-row">
+          <div class="item-details">
+            <span class="item-name">${w.name}</span>
+            <span class="item-sub">${w.duration} mins</span>
+          </div>
+          <div class="item-meta">
+            <span class="meta-val">+${w.calories} kcal</span>
+          </div>
+        </div>
+      `).join("");
+    }
+  } catch (err) {
+    console.error("Error fetching workouts:", err);
+  }
+}
