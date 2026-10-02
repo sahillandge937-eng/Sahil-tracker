@@ -1,14 +1,13 @@
 {
-  "name": "pulse-fitness-tracker",
-  "version": "2.0.0",
-  "description": "PULSE - a professional AI-coached fitness tracking platform (Node.js + Express + SQLite).",
+  "name": "pulse-ai-fitness-tracker",
+  "version": "1.0.0",
+  "description": "PULSE - AI Fitness Tracker",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "better-sqlite3": "^12.4.1",
     "cors": "^2.8.5",
-    "express": "^4.19.2"
+    "express": "^4.18.2"
   }
 }
