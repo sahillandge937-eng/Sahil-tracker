@@ -1,7 +1,9 @@
 // js/views.js
+
 const Modal = (() => {
   function open(title, bodyHtml, { onMount, wide } = {}) {
     const root = document.getElementById('modalRoot');
+    if (!root) return;
     root.innerHTML = `
       <div class="modal-overlay" id="modalOverlay">
         <div class="modal" style="${wide ? 'max-width:640px' : ''}">
@@ -13,8 +15,8 @@ const Modal = (() => {
         </div>
       </div>
     `;
-    document.getElementById('modalClose').addEventListener('click', close);
-    document.getElementById('modalOverlay').addEventListener('click', (e) => { if (e.target.id === 'modalOverlay') close(); });
+    document.getElementById('modalClose')?.addEventListener('click', close);
+    document.getElementById('modalOverlay')?.addEventListener('click', (e) => { if (e.target.id === 'modalOverlay') close(); });
     if (onMount) onMount(document.getElementById('modalBody'));
   }
   function close() {
@@ -124,10 +126,10 @@ Views.dashboard = async (el) => {
   Charts.bar('chartFreqDash', d.frequencyChart.map(x => fmtDayLabel(x.date)),
     [{ label: 'Workouts', data: d.frequencyChart.map(x => x.count), backgroundColor: Charts.palette.lime }]);
 
-  document.getElementById('qaLog').addEventListener('click', () => Forms.workout(() => Views.dashboard(el)));
-  document.getElementById('qaExercise').addEventListener('click', () => Forms.exercise(() => Views.dashboard(el)));
-  document.getElementById('qaWeight').addEventListener('click', () => Forms.weight(() => Views.dashboard(el)));
-  document.getElementById('qaGoal').addEventListener('click', () => Forms.goal(() => Views.dashboard(el)));
+  document.getElementById('qaLog')?.addEventListener('click', () => Forms.workout(() => Views.dashboard(el)));
+  document.getElementById('qaExercise')?.addEventListener('click', () => Forms.exercise(() => Views.dashboard(el)));
+  document.getElementById('qaWeight')?.addEventListener('click', () => Forms.weight(() => Views.dashboard(el)));
+  document.getElementById('qaGoal')?.addEventListener('click', () => Forms.goal(() => Views.dashboard(el)));
 };
 
 // ============================================================
@@ -159,7 +161,7 @@ Views.workouts = async (el, state = {}) => {
           <div>
             <div class="title">${escapeHtml(w.type)} <span class="badge type">${w.difficulty}/5 effort</span>${demoBadge(w)}</div>
             <div class="meta">${w.duration_min} min · ${w.calories} kcal${w.distance_km ? ` · ${w.distance_km} km` : ''} · ${fmtDate(w.date)}${w.notes ? ` · ${escapeHtml(w.notes)}` : ''}</div>
-            ${w.exercises.length ? `<div class="meta">${w.exercises.map(e => `${escapeHtml(e.name)} (${e.sets || '-'}x${e.reps \vert{}\vert{} '-'}${e.weight_kg ? ` @ ${e.weight_kg}kg` : ''})`).join(', ')}</div>` : ''}
+            ${w.exercises?.length ? `<div class="meta">${w.exercises.map(e => `${escapeHtml(e.name)} (${e.sets || '-'}x${e.reps \vert{}\vert{} '-'}${e.weight_kg ? ` @ ${e.weight_kg}kg` : ''})`).join(', ')}</div>` : ''}
           </div>
           <div class="actions">
             <button class="icon-btn" data-edit="${w.id}" aria-label="Edit">✎</button>
@@ -170,9 +172,9 @@ Views.workouts = async (el, state = {}) => {
     </div>
   `;
 
-  document.getElementById('wAdd').addEventListener('click', () => Forms.workout(() => Views.workouts(el, filters)));
-  document.getElementById('wSearch').addEventListener('change', (e) => Views.workouts(el, { ...filters, search: e.target.value }));
-  document.getElementById('wType').addEventListener('change', (e) => Views.workouts(el, { ...filters, type: e.target.value }));
+  document.getElementById('wAdd')?.addEventListener('click', () => Forms.workout(() => Views.workouts(el, filters)));
+  document.getElementById('wSearch')?.addEventListener('change', (e) => Views.workouts(el, { ...filters, search: e.target.value }));
+  document.getElementById('wType')?.addEventListener('change', (e) => Views.workouts(el, { ...filters, type: e.target.value }));
   el.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', async () => {
     const w = await Api.workouts.get(btn.dataset.edit);
     Forms.workout(() => Views.workouts(el, filters), w);
@@ -215,9 +217,9 @@ Views.exercises = async (el, state = {}) => {
     </div>
   `;
 
-  document.getElementById('eAdd').addEventListener('click', () => Forms.exercise(() => Views.exercises(el, filters)));
-  document.getElementById('eSearch').addEventListener('change', (e) => Views.exercises(el, { ...filters, search: e.target.value }));
-  document.getElementById('eGroup').addEventListener('change', (e) => Views.exercises(el, { ...filters, muscle_group: e.target.value }));
+  document.getElementById('eAdd')?.addEventListener('click', () => Forms.exercise(() => Views.exercises(el, filters)));
+  document.getElementById('eSearch')?.addEventListener('change', (e) => Views.exercises(el, { ...filters, search: e.target.value }));
+  document.getElementById('eGroup')?.addEventListener('change', (e) => Views.exercises(el, { ...filters, muscle_group: e.target.value }));
 };
 
 // ============================================================
@@ -256,7 +258,7 @@ Views.progress = async (el) => {
       <div class="card">
         <h2>Strength progression (best lift per exercise)</h2>
         <div class="list">
-          ${p.strength.length ? p.strength.map(s => `<div class="list-item"><span class="title">${escapeHtml(s.name)}</span><span class="meta">${s.max_weight} kg · ${fmtDate(s.last_date)}</span></div>`).join('') : '<div class="empty">Log a strength workout with weights to see progression.</div>'}
+          ${p.strength?.length ? p.strength.map(s => `<div class="list-item"><span class="title">${escapeHtml(s.name)}</span><span class="meta">${s.max_weight} kg · ${fmtDate(s.last_date)}</span></div>`).join('') : '<div class="empty">Log a strength workout with weights to see progression.</div>'}
         </div>
       </div>
     </div>
@@ -265,7 +267,7 @@ Views.progress = async (el) => {
   Charts.line('chartWeight', p.history.map(h => fmtDate(h.date)), [{ label: 'Weight (kg)', data: p.history.map(h => h.weight_kg), borderColor: Charts.palette.lime, backgroundColor: 'rgba(198,255,61,0.12)' }]);
   Charts.bar('chartDuration', p.durationTrend.map(d => fmtDayLabel(d.date)), [{ label: 'Minutes', data: p.durationTrend.map(d => d.minutes), backgroundColor: Charts.palette.sky }]);
 
-  document.getElementById('quickWeightBtn').addEventListener('click', async () => {
+  document.getElementById('quickWeightBtn')?.addEventListener('click', async () => {
     const val = parseFloat(document.getElementById('quickWeight').value);
     if (!val) return;
     await Api.progress.logWeight({ weight: val }).catch(() => {});
@@ -281,9 +283,9 @@ Views.analytics = async (el, range = 30) => {
   const a = await Api.analytics(range).catch(() => null);
   if (!a) { el.innerHTML = '<div class="empty">Could not load analytics.</div>'; return; }
 
-  const typeLabels = Object.keys(a.typeBreakdown);
+  const typeLabels = Object.keys(a.typeBreakdown || {});
   const typeColors = [Charts.palette.lime, Charts.palette.coral, Charts.palette.sky, Charts.palette.amber, '#B084F5', '#F589C1'];
-  const muscleLabels = Object.keys(a.muscleDistribution);
+  const muscleLabels = Object.keys(a.muscleDistribution || {});
 
   el.innerHTML = `
     <div class="chip-row">
@@ -306,10 +308,10 @@ Views.analytics = async (el, range = 30) => {
       <div class="card">
         <h2>Personal records</h2>
         <div class="list">
-          ${a.personalRecords.strongestLifts.map(r => `<div class="list-item"><span class="title">${escapeHtml(r.name)}</span><span class="meta">${r.weight} kg</span></div>`).join('')}
-          ${a.personalRecords.longestWorkout ? `<div class="list-item"><span class="title">Longest workout</span><span class="meta">${a.personalRecords.longestWorkout.duration_min} min (${escapeHtml(a.personalRecords.longestWorkout.type)})</span></div>` : ''}
-          ${a.personalRecords.mostCalories ? `<div class="list-item"><span class="title">Most calories in one session</span><span class="meta">${a.personalRecords.mostCalories.calories} kcal (${escapeHtml(a.personalRecords.mostCalories.type)})</span></div>` : ''}
-          ${!a.personalRecords.strongestLifts.length && !a.personalRecords.longestWorkout ? '<div class="empty">No data yet.</div>' : ''}
+          ${a.personalRecords?.strongestLifts?.map(r => `<div class="list-item"><span class="title">${escapeHtml(r.name)}</span><span class="meta">${r.weight} kg</span></div>`).join('') || ''}
+          ${a.personalRecords?.longestWorkout ? `<div class="list-item"><span class="title">Longest workout</span><span class="meta">${a.personalRecords.longestWorkout.duration_min} min (${escapeHtml(a.personalRecords.longestWorkout.type)})</span></div>` : ''}
+          ${a.personalRecords?.mostCalories ? `<div class="list-item"><span class="title">Most calories in one session</span><span class="meta">${a.personalRecords.mostCalories.calories} kcal (${escapeHtml(a.personalRecords.mostCalories.type)})</span></div>` : ''}
+          ${!a.personalRecords?.strongestLifts?.length && !a.personalRecords?.longestWorkout ? '<div class="empty">No data yet.</div>' : ''}
         </div>
       </div>
     </div>
@@ -346,7 +348,7 @@ Views.goals = async (el) => {
     </div>
   `;
 
-  document.getElementById('gAdd').addEventListener('click', () => Forms.goal(() => Views.goals(el)));
+  document.getElementById('gAdd')?.addEventListener('click', () => Forms.goal(() => Views.goals(el)));
   el.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', async () => {
     const g = goals.find(x => String(x.id) === btn.dataset.edit);
     Forms.goal(() => Views.goals(el), g);
@@ -404,13 +406,16 @@ Views.nutrition = async (el) => {
 
   Charts.bar('chartNutritionWeek', week.map(w => fmtDayLabel(w.date)), [{ label: 'Calories', data: week.map(w => w.calories), backgroundColor: Charts.palette.lime }]);
 
-  document.getElementById('nAdd').addEventListener('click', () => Forms.nutrition(() => Views.nutrition(el)));
+  document.getElementById('nAdd')?.addEventListener('click', () => Forms.nutrition(() => Views.nutrition(el)));
   el.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', async () => {
     await Api.nutrition.remove(btn.dataset.del).catch(() => {});
     Views.nutrition(el);
   }));
 };
 
+// ============================================================
+// HISTORY
+// ============================================================
 Views.history = async (el) => {
   const now = new Date();
   const defaultMonth = now.toISOString().slice(0, 7);
@@ -439,8 +444,8 @@ Views.history = async (el) => {
     try {
       const data = await Api.history.month(month);
 
-      const m = data.monthly;
-      const daily = data.daily;
+      const m = data.monthly || { workouts: 0, workout_calories: 0, workout_minutes: 0, nutrition_calories: 0 };
+      const daily = data.daily || [];
 
       const weeks = {};
 
@@ -465,10 +470,10 @@ Views.history = async (el) => {
           };
         }
 
-        weeks[key].workouts += day.workout_count;
-        weeks[key].workout_calories += day.workout_calories;
-        weeks[key].workout_minutes += day.workout_minutes;
-        weeks[key].nutrition_calories += day.nutrition_calories;
+        weeks[key].workouts += day.workout_count || 0;
+        weeks[key].workout_calories += day.workout_calories || 0;
+        weeks[key].workout_minutes += day.workout_minutes || 0;
+        weeks[key].nutrition_calories += day.nutrition_calories || 0;
       });
 
       const weekRows = Object.values(weeks)
@@ -500,9 +505,9 @@ Views.history = async (el) => {
             <strong>${new Date(day.date).toLocaleDateString()}</strong>
           </div>
           <div style="text-align:right;font-size:12px">
-            🏋️ ${day.workout_count} workouts |
-            🔥 ${day.workout_calories} kcal |
-            🍽️ ${day.nutrition_calories} kcal
+            🏋️ ${day.workout_count || 0} workouts |
+            🔥 ${day.workout_calories || 0} kcal |
+            🍽️ ${day.nutrition_calories || 0} kcal
           </div>
         </div>
       `).join('');
@@ -554,9 +559,7 @@ Views.history = async (el) => {
     }
   };
 
-  document.getElementById('historyMonth')
-    .addEventListener('change', loadHistory);
-
+  document.getElementById('historyMonth')?.addEventListener('change', loadHistory);
   await loadHistory();
 };
 
@@ -570,9 +573,9 @@ Views.coach = async (el) => {
     <div class="card">
       <h2>PULSE AI Coach</h2>
       <p style="color:var(--text-dim);font-size:12.5px;margin-bottom:16px">
-        A local, rule-based coaching engine — every message below is generated directly from your own logged workouts, with no external AI service involved.
+        A local, rule-based coaching engine — every message below is generated directly from your logged workouts.
       </p>
-      ${c.messages.length ? c.messages.map(m => `<div class="coach-msg ${toneClass(m.tone)}"><span class="dot">●</span><span>${escapeHtml(m.text)}</span></div>`).join('') : '<div class="empty">Log a few workouts to unlock coaching.</div>'}
+      ${c.messages?.length ? c.messages.map(m => `<div class="coach-msg ${toneClass(m.tone)}"><span class="dot">●</span><span>${escapeHtml(m.text)}</span></div>`).join('') : '<div class="empty">Log a few workouts to unlock coaching cues!</div>'}
     </div>
   `;
 };
