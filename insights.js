@@ -1,11 +1,8 @@
-// insights.js
 const express = require('express');
 const router = express.Router();
 
 const {
   db,
-  daysAgo,
-  startOfDay,
   computeStreak,
   computeGoalProgress,
   getUser,
@@ -14,656 +11,634 @@ const {
 
 const { generateCoachMessages } = require('./coachEngine');
 
-// ------------------------------------------------------------
-// GET /api/dashboard
-// ------------------------------------------------------------
+// India timezone offset = UTC + 5:30
+const IST_OFFSET = 5.5 * 60 * 60 * 1000;
+
+function istStartOfDay(ts = Date.now()) {
+  const shifted = Number(ts) + IST_OFFSET;
+  const d = new Date(shifted);
+
+  const y = d.getUTCFullYear();
+  const m = d.getUTCMonth();
+  const day = d.getUTCDate();
+
+  return Date.UTC(y, m, day) - IST_OFFSET;
+}
+
+function istDaysAgo(n) {
+  return istStartOfDay(Date.now()) - (Number(n) * 86400000);
+}
+
+function istMonthStart(year, monthIndex) {
+  return Date.UTC(year, monthIndex, 1) - IST_OFFSET;
+}
+
+function istMonthEnd(year, monthIndex) {
+  return Date.UTC(year, monthIndex + 1, 1) - IST_OFFSET;
+}
+
+function getISTDateParts(ts = Date.now()) {
+  const shifted = Number(ts) + IST_OFFSET;
+  const d = new Date(shifted);
+
+  return {
+    year: d.getUTCFullYear(),
+    month: d.getUTCMonth(),
+    day: d.getUTCDate()
+  };
+}
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+
 router.get('/dashboard', (req, res) => {
-  const userId = getRequestUserId(req);
+  try {
+    const userId = getRequestUserId(req);
 
-  const today = startOfDay(Date.now());
-  const weekStart = daysAgo(6);
+    const today = istStartOfDay(Date.now());
+    const weekStart = istDaysAgo(6);
+    const tomorrow = today + 86400000;
 
-  const now = new Date();
-
-  const monthStart = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    1
-  ).getTime();
-
-  const monthEnd = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    1
-  ).getTime();
-
-  // Current week workouts
-  const weekWorkouts = db.prepare(`
-    SELECT *
-    FROM workouts
-    WHERE user_id = ?
-      AND date >= ?
-      AND date < ?
-  `).all(
-    userId,
-    weekStart,
-    today + 86400000
-  );
-
-  const weeklyCount = weekWorkouts.length;
-
-  const weeklyCalories = weekWorkouts.reduce(
-    (sum, w) => sum + Number(w.calories || 0),
-    0
-  );
-
-  const weeklyMinutes = weekWorkouts.reduce(
-    (sum, w) => sum + Number(w.duration_min || 0),
-    0
-  );
-
-  // Current month dates for streak
-  const allDates = db.prepare(`
-    SELECT date
-    FROM workouts
-    WHERE user_id = ?
-      AND date >= ?
-      AND date < ?
-  `).all(
-    userId,
-    monthStart,
-    monthEnd
-  ).map(row => row.date);
-
-  const streak = computeStreak(allDates);
-
-  // Today's workout
-  const todaysWorkout = db.prepare(`
-    SELECT *
-    FROM workouts
-    WHERE user_id = ?
-      AND date >= ?
-      AND date < ?
-    ORDER BY date DESC
-    LIMIT 1
-  `).get(
-    userId,
-    today,
-    today + 86400000
-  );
-
-  const user = getUser(userId) || {};
-
-  const weeklyGoalTarget =
-    user.weekly_workout_target || 4;
-
-  // ----------------------------------------------------------
-  // Charts
-  // ----------------------------------------------------------
-  const caloriesChart = [];
-  const frequencyChart = [];
-
-  for (let i = 6; i >= 0; i--) {
-    const day = daysAgo(i);
-
-    const dayWorkouts = db.prepare(`
+    const weekWorkouts = db.prepare(`
       SELECT *
       FROM workouts
       WHERE user_id = ?
         AND date >= ?
         AND date < ?
-    `).all(
-      userId,
-      day,
-      day + 86400000
+      ORDER BY date DESC
+    `).all(userId, weekStart, tomorrow);
+
+    const weeklyCount = weekWorkouts.length;
+
+    const weeklyCalories = weekWorkouts.reduce(
+      (sum, w) => sum + Number(w.calories || 0),
+      0
     );
 
-    caloriesChart.push({
-      date: day,
-      calories: dayWorkouts.reduce(
-        (sum, w) => sum + Number(w.calories || 0),
-        0
-      )
+    const weeklyMinutes = weekWorkouts.reduce(
+      (sum, w) => sum + Number(w.duration_min || 0),
+      0
+    );
+
+    /* Current month */
+    const nowParts = getISTDateParts(Date.now());
+
+    const monthStart = istMonthStart(
+      nowParts.year,
+      nowParts.month
+    );
+
+    const monthEnd = istMonthEnd(
+      nowParts.year,
+      nowParts.month
+    );
+
+    const monthWorkouts = db.prepare(`
+      SELECT *
+      FROM workouts
+      WHERE user_id = ?
+        AND date >= ?
+        AND date < ?
+      ORDER BY date DESC
+    `).all(userId, monthStart, monthEnd);
+
+    /* Streak */
+    const allDates = db.prepare(`
+      SELECT date
+      FROM workouts
+      WHERE user_id = ?
+    `).all(userId).map(row => row.date);
+
+    const daySet = new Set(
+      allDates.map(date => istStartOfDay(date))
+    );
+
+    let streak = 0;
+
+    for (let i = 0; i < 365; i++) {
+      if (daySet.has(istDaysAgo(i))) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    /* Today's workout */
+    const todaysWorkout = db.prepare(`
+      SELECT *
+      FROM workouts
+      WHERE user_id = ?
+        AND date >= ?
+        AND date < ?
+      ORDER BY date DESC
+      LIMIT 1
+    `).get(userId, today, tomorrow);
+
+    /* Recent workouts */
+    const recentWorkouts = monthWorkouts.slice(0, 10);
+
+    /* Current month stats */
+    const totalWorkouts = monthWorkouts.length;
+
+    const totalCalories = monthWorkouts.reduce(
+      (sum, w) => sum + Number(w.calories || 0),
+      0
+    );
+
+    const avgDuration = totalWorkouts
+      ? Math.round(
+          monthWorkouts.reduce(
+            (sum, w) => sum + Number(w.duration_min || 0),
+            0
+          ) / totalWorkouts
+        )
+      : 0;
+
+    /* Weekly goal */
+    const goal = db.prepare(`
+      SELECT *
+      FROM goals
+      WHERE user_id = ?
+        AND type = 'workouts_per_week'
+      ORDER BY id DESC
+      LIMIT 1
+    `).get(userId);
+
+    const weeklyGoal = goal
+      ? computeGoalProgress(goal, userId)
+      : {
+          target: 4,
+          current_value: weeklyCount,
+          progress_pct: Math.min(
+            100,
+            Math.round((weeklyCount / 4) * 100)
+          )
+        };
+
+    /* Charts */
+    const caloriesChart = [];
+    const frequencyChart = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const dayStart = istDaysAgo(i);
+      const dayEnd = dayStart + 86400000;
+
+      const row = db.prepare(`
+        SELECT
+          COALESCE(SUM(calories), 0) AS calories,
+          COUNT(*) AS count
+        FROM workouts
+        WHERE user_id = ?
+          AND date >= ?
+          AND date < ?
+      `).get(userId, dayStart, dayEnd);
+
+      caloriesChart.push({
+        date: dayStart,
+        calories: Number(row.calories || 0)
+      });
+
+      frequencyChart.push({
+        date: dayStart,
+        count: Number(row.count || 0)
+      });
+    }
+
+    let coachRecommendations = [];
+
+    try {
+      coachRecommendations = generateCoachMessages({
+        weeklyCount,
+        weeklyCalories,
+        weeklyMinutes,
+        streak,
+        todaysWorkout,
+        recentWorkouts,
+        user: getUser(userId)
+      });
+    } catch (e) {
+      coachRecommendations = [];
+    }
+
+    if (!coachRecommendations.length) {
+      coachRecommendations = weeklyCount === 0
+        ? [{
+            text: 'No workouts logged this week yet. Even a short session helps keep the habit alive.',
+            tone: 'warn'
+          }]
+        : [{
+            text: 'Great work! Keep your workout routine consistent.',
+            tone: 'good'
+          }];
+    }
+
+    res.json({
+      date: today,
+      weeklyCount,
+      weeklyCalories,
+      weeklyMinutes,
+      streak,
+
+      weeklyGoal: {
+        target: weeklyGoal.target || weeklyGoal.target_value || 4,
+        current:
+          weeklyGoal.current_value !== undefined
+            ? weeklyGoal.current_value
+            : weeklyCount,
+        pct:
+          weeklyGoal.progress_pct !== undefined
+            ? weeklyGoal.progress_pct
+            : 0
+      },
+
+      caloriesChart,
+      frequencyChart,
+      recentWorkouts,
+      todaysWorkout: todaysWorkout || null,
+
+      stats: {
+        totalWorkouts,
+        totalCalories,
+        avgDuration
+      },
+
+      currentGoals: db.prepare(`
+        SELECT *
+        FROM goals
+        WHERE user_id = ?
+        ORDER BY id DESC
+      `).all(userId),
+
+      coachRecommendations
     });
 
-    frequencyChart.push({
-      date: day,
-      count: dayWorkouts.length
+  } catch (error) {
+    console.error('Dashboard error:', error);
+    res.status(500).json({
+      error: 'Could not load dashboard'
     });
   }
-
-  // ----------------------------------------------------------
-  // Recent workouts
-  // ----------------------------------------------------------
-  const recentWorkouts = db.prepare(`
-    SELECT *
-    FROM workouts
-    WHERE user_id = ?
-      AND date >= ?
-      AND date < ?
-    ORDER BY date DESC
-    LIMIT 5
-  `).all(
-    userId,
-    monthStart,
-    monthEnd
-  );
-
-  // ----------------------------------------------------------
-  // Current month statistics
-  // ----------------------------------------------------------
-  const stats = db.prepare(`
-    SELECT
-      COUNT(*) AS totalWorkouts,
-      COALESCE(SUM(calories), 0) AS totalCalories,
-      COALESCE(AVG(duration_min), 0) AS avgDuration
-    FROM workouts
-    WHERE user_id = ?
-      AND date >= ?
-      AND date < ?
-  `).get(
-    userId,
-    monthStart,
-    monthEnd
-  );
-
-  // ----------------------------------------------------------
-  // Current goals
-  // ----------------------------------------------------------
-  const currentGoals = db.prepare(`
-    SELECT *
-    FROM goals
-    WHERE user_id = ?
-      AND status = 'active'
-    ORDER BY created_at DESC
-    LIMIT 3
-  `)
-    .all(userId)
-    .map(goal => computeGoalProgress(goal, userId));
-
-  // ----------------------------------------------------------
-  // Dashboard response
-  // ----------------------------------------------------------
-  res.json({
-    date: today,
-
-    todaysWorkout,
-
-    weeklyCount,
-
-    weeklyCalories,
-
-    weeklyMinutes,
-
-    streak,
-
-    weeklyGoal: {
-      target: weeklyGoalTarget,
-      current: weeklyCount,
-      pct: Math.min(
-        100,
-        Math.round(
-          (weeklyCount / weeklyGoalTarget) * 100
-        )
-      )
-    },
-
-    caloriesChart,
-
-    frequencyChart,
-
-    recentWorkouts,
-
-    stats: {
-      totalWorkouts: stats.totalWorkouts,
-      totalCalories: stats.totalCalories,
-      avgDuration: Math.round(stats.avgDuration)
-    },
-
-    currentGoals,
-
-    coachRecommendations:
-      generateCoachMessages(userId).slice(0, 3)
-  });
 });
 
-// ------------------------------------------------------------
-// GET /api/analytics?range=7|30|90|365
-// ------------------------------------------------------------
+
+/* =========================================================
+   ANALYTICS
+   ========================================================= */
+
 router.get('/analytics', (req, res) => {
-  const userId = getRequestUserId(req);
+  try {
+    const userId = getRequestUserId(req);
+    const range = req.query.range || 'week';
 
-  const now = new Date();
+    let start;
 
-  const monthStart = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    1
-  ).getTime();
-
-  const monthEnd = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    1
-  ).getTime();
-
-  const range = Number(req.query.range) || 30;
-
-  const cutoff = Math.max(
-    daysAgo(range - 1),
-    monthStart
-  );
-
-  const workouts = db.prepare(`
-    SELECT *
-    FROM workouts
-    WHERE user_id = ?
-      AND date >= ?
-      AND date < ?
-  `).all(
-    userId,
-    cutoff,
-    monthEnd
-  );
-
-  const buckets = {};
-
-  const bucketMs =
-    range <= 31
-      ? 86400000
-      : 7 * 86400000;
-
-  workouts.forEach(w => {
-    const key =
-      Math.floor(
-        startOfDay(w.date) / bucketMs
-      ) * bucketMs;
-
-    if (!buckets[key]) {
-      buckets[key] = {
-        date: key,
-        count: 0,
-        calories: 0,
-        minutes: 0
-      };
+    if (range === 'month') {
+      start = istDaysAgo(29);
+    } else if (range === 'year') {
+      start = istDaysAgo(364);
+    } else {
+      start = istDaysAgo(6);
     }
 
-    buckets[key].count += 1;
+    const workouts = db.prepare(`
+      SELECT *
+      FROM workouts
+      WHERE user_id = ?
+        AND date >= ?
+      ORDER BY date ASC
+    `).all(userId, start);
 
-    buckets[key].calories +=
-      Number(w.calories || 0);
+    const totalWorkouts = workouts.length;
 
-    buckets[key].minutes +=
-      Number(w.duration_min || 0);
-  });
-
-  const timeSeries =
-    Object.values(buckets)
-      .sort((a, b) => a.date - b.date);
-
-  const typeBreakdown = {};
-
-  workouts.forEach(w => {
-    typeBreakdown[w.type] =
-      (typeBreakdown[w.type] || 0) + 1;
-  });
-
-  const uniqueDays =
-    new Set(
-      workouts.map(w => startOfDay(w.date))
-    ).size;
-
-  const daysInCurrentPeriod =
-    Math.max(
-      1,
-      Math.ceil(
-        (Math.min(Date.now(), monthEnd) - cutoff)
-        / 86400000
-      )
+    const totalCalories = workouts.reduce(
+      (sum, w) => sum + Number(w.calories || 0),
+      0
     );
 
-  const consistencyPct =
-    Math.round(
-      (uniqueDays / daysInCurrentPeriod) * 100
+    const totalMinutes = workouts.reduce(
+      (sum, w) => sum + Number(w.duration_min || 0),
+      0
     );
 
-  const muscleRows = db.prepare(`
-    SELECT
-      e.muscle_group AS muscle_group,
-      COUNT(*) AS c
-    FROM workout_exercises we
-    JOIN exercises e
-      ON e.id = we.exercise_id
-    JOIN workouts w
-      ON w.id = we.workout_id
-    WHERE w.user_id = ?
-      AND w.date >= ?
-      AND w.date < ?
-    GROUP BY e.muscle_group
-  `).all(
-    userId,
-    cutoff,
-    monthEnd
-  );
+    res.json({
+      range,
+      totalWorkouts,
+      totalCalories,
+      totalMinutes,
+      workouts
+    });
 
-  const muscleDistribution = {};
+  } catch (error) {
+    console.error('Analytics error:', error);
 
-  muscleRows.forEach(r => {
-    muscleDistribution[r.muscle_group] = r.c;
-  });
+    res.status(500).json({
+      error: 'Could not load analytics'
+    });
+  }
+});
 
-  const personalRecords = {
-    strongestLifts: db.prepare(`
-      SELECT
-        e.name,
-        MAX(we.weight_kg) AS weight
-      FROM workout_exercises we
-      JOIN exercises e
-        ON e.id = we.exercise_id
-      JOIN workouts w
-        ON w.id = we.workout_id
-      WHERE we.weight_kg IS NOT NULL
-        AND w.user_id = ?
-        AND w.date >= ?
-        AND w.date < ?
-      GROUP BY e.id
-      ORDER BY weight DESC
-      LIMIT 5
+
+/* =========================================================
+   COACH
+   ========================================================= */
+
+router.get('/coach', (req, res) => {
+  try {
+    const userId = getRequestUserId(req);
+
+    const today = istStartOfDay(Date.now());
+    const weekStart = istDaysAgo(6);
+
+    const workouts = db.prepare(`
+      SELECT *
+      FROM workouts
+      WHERE user_id = ?
+        AND date >= ?
+        AND date < ?
+      ORDER BY date DESC
     `).all(
       userId,
-      cutoff,
-      monthEnd
-    ),
+      weekStart,
+      today + 86400000
+    );
 
-    longestWorkout: db.prepare(`
-      SELECT
-        type,
-        duration_min,
-        date
-      FROM workouts
-      WHERE user_id = ?
-        AND date >= ?
-        AND date < ?
-      ORDER BY duration_min DESC
-      LIMIT 1
-    `).get(
-      userId,
-      cutoff,
-      monthEnd
-    ),
+    const user = getUser(userId);
 
-    mostCalories: db.prepare(`
-      SELECT
-        type,
-        calories,
-        date
-      FROM workouts
-      WHERE user_id = ?
-        AND date >= ?
-        AND date < ?
-      ORDER BY calories DESC
-      LIMIT 1
-    `).get(
-      userId,
-      cutoff,
-      monthEnd
-    )
-  };
+    let messages = [];
 
-  res.json({
-    range,
-
-    timeSeries,
-
-    typeBreakdown,
-
-    consistencyPct,
-
-    muscleDistribution,
-
-    personalRecords,
-
-    totals: {
-      workouts: workouts.length,
-
-      calories: workouts.reduce(
-        (s, w) =>
-          s + Number(w.calories || 0),
-        0
-      ),
-
-      minutes: workouts.reduce(
-        (s, w) =>
-          s + Number(w.duration_min || 0),
-        0
-      )
+    try {
+      messages = generateCoachMessages({
+        weeklyCount: workouts.length,
+        weeklyCalories: workouts.reduce(
+          (s, w) => s + Number(w.calories || 0),
+          0
+        ),
+        weeklyMinutes: workouts.reduce(
+          (s, w) => s + Number(w.duration_min || 0),
+          0
+        ),
+        recentWorkouts: workouts,
+        user
+      });
+    } catch (e) {
+      messages = [];
     }
-  });
+
+    res.json({
+      recommendations: messages
+    });
+
+  } catch (error) {
+    console.error('Coach error:', error);
+
+    res.status(500).json({
+      error: 'Could not load coach'
+    });
+  }
 });
 
-// ------------------------------------------------------------
-// GET /api/coach
-// ------------------------------------------------------------
-router.get('/coach', (req, res) => {
-  const userId = getRequestUserId(req);
 
-  res.json({
-    messages: generateCoachMessages(userId)
-  });
-});
+/* =========================================================
+   ACTIVITY
+   ========================================================= */
 
-// ------------------------------------------------------------
-// GET /api/activity
-// ------------------------------------------------------------
 router.get('/activity', (req, res) => {
-  const userId = getRequestUserId(req);
+  try {
+    const userId = getRequestUserId(req);
+    const limit = Math.min(
+      Number(req.query.limit) || 30,
+      100
+    );
 
-  const limit =
-    Number(req.query.limit) || 30;
+    const activities = db.prepare(`
+      SELECT *
+      FROM activity_logs
+      WHERE user_id = ?
+      ORDER BY date DESC
+      LIMIT ?
+    `).all(userId, limit);
 
-  const rows = db.prepare(`
-    SELECT *
-    FROM activity_logs
-    WHERE user_id = ?
-    ORDER BY date DESC
-    LIMIT ?
-  `).all(
-    userId,
-    limit
-  );
+    res.json(activities);
 
-  res.json(rows);
+  } catch (error) {
+    console.error('Activity error:', error);
+
+    res.status(500).json({
+      error: 'Could not load activity'
+    });
+  }
 });
 
-// ------------------------------------------------------------
-// GET /api/history?month=YYYY-MM
-// ------------------------------------------------------------
+
+/* =========================================================
+   HISTORY
+   ========================================================= */
+
 router.get('/history', (req, res) => {
-  const userId = getRequestUserId();
+  try {
+    const userId = getRequestUserId(req);
 
-  const month =
-    String(req.query.month || '');
-
-  if (!/^\d{4}-\d{2}$/.test(month)) {
-    return res.status(400).json({
-      error: 'Month must be in YYYY-MM format'
-    });
-  }
-
-  const [year, monthNumber] =
-    month.split('-').map(Number);
-
-  const start =
-    new Date(
-      year,
-      monthNumber - 1,
-      1
+    const monthParam = String(
+      req.query.month || ''
     );
 
-  const end =
-    new Date(
+    const match = /^(\d{4})-(\d{2})$/.exec(monthParam);
+
+    const now = getISTDateParts(Date.now());
+
+    const year = match
+      ? Number(match[1])
+      : now.year;
+
+    const monthIndex = match
+      ? Number(match[2]) - 1
+      : now.month;
+
+    if (
+      monthIndex < 0 ||
+      monthIndex > 11
+    ) {
+      return res.status(400).json({
+        error: 'Invalid month'
+      });
+    }
+
+    const monthStart = istMonthStart(
       year,
-      monthNumber,
-      1
+      monthIndex
     );
 
-  const startTs = start.getTime();
-  const endTs = end.getTime();
+    const monthEnd = istMonthEnd(
+      year,
+      monthIndex
+    );
 
-  const workouts = db.prepare(`
-    SELECT *
-    FROM workouts
-    WHERE user_id = ?
-      AND date >= ?
-      AND date < ?
-    ORDER BY date ASC
-  `).all(
-    userId,
-    startTs,
-    endTs
-  );
+    /* IMPORTANT:
+       Filter using IST boundaries, not server timezone.
+    */
 
-  const nutrition = db.prepare(`
-    SELECT *
-    FROM nutrition
-    WHERE user_id = ?
-      AND date >= ?
-      AND date < ?
-    ORDER BY date ASC
-  `).all(
-    userId,
-    startTs,
-    endTs
-  );
+    const workouts = db.prepare(`
+      SELECT *
+      FROM workouts
+      WHERE user_id = ?
+        AND date >= ?
+        AND date < ?
+      ORDER BY date ASC
+    `).all(
+      userId,
+      monthStart,
+      monthEnd
+    );
 
-  const daily = [];
+    const nutrition = db.prepare(`
+      SELECT *
+      FROM nutrition
+      WHERE user_id = ?
+        AND date >= ?
+        AND date < ?
+      ORDER BY date ASC
+    `).all(
+      userId,
+      monthStart,
+      monthEnd
+    );
 
-  for (
-    let d = new Date(start);
-    d < end;
-    d.setDate(d.getDate() + 1)
-  ) {
-    const dayStart =
-      new Date(d).getTime();
+    const monthlyWorkouts = workouts.length;
 
-    const dayEnd =
-      dayStart + 86400000;
+    const monthlyWorkoutCalories = workouts.reduce(
+      (sum, w) => sum + Number(w.calories || 0),
+      0
+    );
 
-    const dayWorkouts =
-      workouts.filter(
+    const monthlyWorkoutMinutes = workouts.reduce(
+      (sum, w) => sum + Number(w.duration_min || 0),
+      0
+    );
+
+    const nutritionCalories = nutrition.reduce(
+      (sum, n) => sum + Number(n.calories || 0),
+      0
+    );
+
+    const protein = nutrition.reduce(
+      (sum, n) => sum + Number(n.protein || 0),
+      0
+    );
+
+    const carbs = nutrition.reduce(
+      (sum, n) => sum + Number(n.carbs || 0),
+      0
+    );
+
+    const fat = nutrition.reduce(
+      (sum, n) => sum + Number(n.fat || 0),
+      0
+    );
+
+    /* Number of days in selected month */
+    const daysInMonth =
+      new Date(
+        Date.UTC(year, monthIndex + 1, 0)
+      ).getUTCDate();
+
+    const daily = [];
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayStart =
+        Date.UTC(year, monthIndex, day) -
+        IST_OFFSET;
+
+      const dayEnd =
+        dayStart + 86400000;
+
+      const dayWorkouts = workouts.filter(
         w =>
-          w.date >= dayStart &&
-          w.date < dayEnd
+          Number(w.date) >= dayStart &&
+          Number(w.date) < dayEnd
       );
 
-    const dayNutrition =
-      nutrition.filter(
+      const dayNutrition = nutrition.filter(
         n =>
-          n.date >= dayStart &&
-          n.date < dayEnd
+          Number(n.date) >= dayStart &&
+          Number(n.date) < dayEnd
       );
 
-    daily.push({
-      date: dayStart,
+      daily.push({
+        date: dayStart,
 
-      workout_count:
-        dayWorkouts.length,
+        workout_count:
+          dayWorkouts.length,
 
-      workout_calories:
-        dayWorkouts.reduce(
-          (sum, w) =>
-            sum + Number(w.calories || 0),
-          0
-        ),
+        workout_calories:
+          dayWorkouts.reduce(
+            (sum, w) =>
+              sum + Number(w.calories || 0),
+            0
+          ),
 
-      workout_minutes:
-        dayWorkouts.reduce(
-          (sum, w) =>
-            sum + Number(w.duration_min || 0),
-          0
-        ),
+        workout_minutes:
+          dayWorkouts.reduce(
+            (sum, w) =>
+              sum + Number(w.duration_min || 0),
+            0
+          ),
 
-      nutrition_calories:
-        dayNutrition.reduce(
-          (sum, n) =>
-            sum + Number(n.calories || 0),
-          0
-        ),
+        nutrition_calories:
+          dayNutrition.reduce(
+            (sum, n) =>
+              sum + Number(n.calories || 0),
+            0
+          ),
 
-      protein:
-        dayNutrition.reduce(
-          (sum, n) =>
-            sum + Number(n.protein_g || 0),
-          0
-        ),
+        protein:
+          dayNutrition.reduce(
+            (sum, n) =>
+              sum + Number(n.protein || 0),
+            0
+          ),
 
-      carbs:
-        dayNutrition.reduce(
-          (sum, n) =>
-            sum + Number(n.carbs_g || 0),
-          0
-        ),
+        carbs:
+          dayNutrition.reduce(
+            (sum, n) =>
+              sum + Number(n.carbs || 0),
+            0
+          ),
 
-      fat:
-        dayNutrition.reduce(
-          (sum, n) =>
-            sum + Number(n.fat_g || 0),
-          0
-        )
+        fat:
+          dayNutrition.reduce(
+            (sum, n) =>
+              sum + Number(n.fat || 0),
+            0
+          )
+      });
+    }
+
+    res.json({
+      month:
+        `${year}-${String(monthIndex + 1).padStart(2, '0')}`,
+
+      monthly: {
+        workouts: monthlyWorkouts,
+        workout_calories: monthlyWorkoutCalories,
+        workout_minutes: monthlyWorkoutMinutes,
+        nutrition_calories: nutritionCalories,
+        protein,
+        carbs,
+        fat
+      },
+
+      daily
+    });
+
+  } catch (error) {
+    console.error('History error:', error);
+
+    res.status(500).json({
+      error: 'Could not load history'
     });
   }
-
-  const monthly = {
-    workouts: workouts.length,
-
-    workout_calories:
-      workouts.reduce(
-        (sum, w) =>
-          sum + Number(w.calories || 0),
-        0
-      ),
-
-    workout_minutes:
-      workouts.reduce(
-        (sum, w) =>
-          sum + Number(w.duration_min || 0),
-        0
-      ),
-
-    nutrition_calories:
-      nutrition.reduce(
-        (sum, n) =>
-          sum + Number(n.calories || 0),
-        0
-      ),
-
-    protein:
-      nutrition.reduce(
-        (sum, n) =>
-          sum + Number(n.protein_g || 0),
-        0
-      ),
-
-    carbs:
-      nutrition.reduce(
-        (sum, n) =>
-          sum + Number(n.carbs_g || 0),
-        0
-      ),
-
-    fat:
-      nutrition.reduce(
-        (sum, n) =>
-          sum + Number(n.fat_g || 0),
-        0
-      )
-  };
-
-  res.json({
-    month,
-    monthly,
-    daily
-  });
 });
+
 
 module.exports = router;
