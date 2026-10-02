@@ -93,7 +93,7 @@ Views.dashboard = async (el) => {
         <div class="list">
           ${d.recentWorkouts.length ? d.recentWorkouts.map(w => `
             <div class="list-item">
-              <div><div class="title">${escapeHtml(w.type)} ${demoBadge(w)}</div><div class="meta">${w.duration_min} min · ${w.calories} kcal · ${fmtDate(w.date)}</div></div>
+              <div><div class="title">${escapeHtml(w.type)}${demoBadge(w)}</div><div class="meta">${w.duration_min} min · ${w.calories} kcal · ${fmtDate(w.date)}</div></div>
             </div>
           `).join('') : '<div class="empty">No workouts yet.</div>'}
         </div>
@@ -103,7 +103,7 @@ Views.dashboard = async (el) => {
         <div class="list">
           ${d.currentGoals.length ? d.currentGoals.map(g => `
             <div class="list-item" style="flex-direction:column;align-items:stretch;gap:8px">
-              <div style="display:flex;justify-content:space-between"><span class="title">${escapeHtml(g.title)} ${demoBadge(g)}</span><span class="meta">${g.progress_pct}%</span></div>
+              <div style="display:flex;justify-content:space-between"><span class="title">${escapeHtml(g.title)}${demoBadge(g)}</span><span class="meta">${g.progress_pct}%</span></div>
               <div class="progress-track"><div class="progress-fill" style="width:${g.progress_pct}%"></div></div>
             </div>
           `).join('') : '<div class="empty">No active goals. Create one on the Goals page.</div>'}
@@ -160,9 +160,9 @@ Views.workouts = async (el, state = {}) => {
       ${workouts.length ? workouts.map(w => `
         <div class="list-item">
           <div>
-            <div class="title">${escapeHtml(w.type)} <span class="badge type">${w.difficulty}/5 effort</span> ${demoBadge(w)}</div>
+            <div class="title">${escapeHtml(w.type)} <span class="badge type">${w.difficulty}/5 effort</span>${demoBadge(w)}</div>
             <div class="meta">${w.duration_min} min · ${w.calories} kcal${w.distance_km ? ` · ${w.distance_km} km` : ''} · ${fmtDate(w.date)}${w.notes ? ` · ${escapeHtml(w.notes)}` : ''}</div>
-            ${w.exercises.length ? `<div class="meta">${w.exercises.map(e => `${escapeHtml(e.name)} (${e.sets || '-'}x${e.reps || '-'}${e.weight_kg ? ` @ ${e.weight_kg}kg` : ''})`).join(', ')}</div>` : ''}
+            ${w.exercises.length ? `<div class="meta">${w.exercises.map(e => `${escapeHtml(e.name)} (${e.sets || '-'}x${e.reps \vert{}\vert{} '-'}${e.weight_kg ? ` @ ${e.weight_kg}kg` : ''})`).join(', ')}</div>` : ''}
           </div>
           <div class="actions">
             <button class="icon-btn" data-edit="${w.id}" aria-label="Edit">✎</button>
@@ -211,7 +211,7 @@ Views.exercises = async (el, state = {}) => {
       ${exercises.length ? exercises.map(ex => `
         <div class="card">
           <div class="card-title-row"><h3>${escapeHtml(ex.name)}</h3><span class="badge type">${escapeHtml(ex.difficulty || '')}</span></div>
-          <div class="meta" style="color:var(--text-dim);font-size:12px;margin-bottom:8px">${escapeHtml(ex.muscle_group)} · ${escapeHtml(ex.category)}</div>
+          <div class="meta" style="color:var(--text-dim);font-size:12px;margin-bottom:8px">${escapeHtml(ex.muscle_group)} ·${escapeHtml(ex.category)}</div>
           <p style="font-size:12.5px;color:var(--text-dim)">${escapeHtml(ex.description || '')}</p>
         </div>
       `).join('') : '<div class="empty">No exercises match your filters.</div>'}
@@ -338,10 +338,10 @@ Views.goals = async (el) => {
       ${goals.length ? goals.map(g => `
         <div class="card">
           <div class="card-title-row">
-            <h3>${escapeHtml(g.title)} ${demoBadge(g)} ${g.status === 'completed' ? '<span class="badge good">Completed</span>' : ''}</h3>
+            <h3>${escapeHtml(g.title)} ${demoBadge(g)}${g.status === 'completed' ? '<span class="badge good">Completed</span>' : ''}</h3>
             <div class="actions"><button class="icon-btn" data-edit="${g.id}">✎</button><button class="icon-btn danger" data-del="${g.id}">✕</button></div>
           </div>
-          <div class="meta" style="margin-bottom:8px">${g.current_value} / ${g.target_value} ${escapeHtml(g.unit || '')}</div>
+          <div class="meta" style="margin-bottom:8px">${g.current_value} / ${g.target_value}${escapeHtml(g.unit || '')}</div>
           <div class="progress-track"><div class="progress-fill" style="width:${g.progress_pct}%"></div></div>
           ${g.status !== 'completed' ? `<button class="btn btn-sm" style="margin-top:12px" data-complete="${g.id}">Mark complete</button>` : ''}
         </div>
@@ -397,7 +397,7 @@ Views.nutrition = async (el) => {
       <div class="list">
         ${today.entries.length ? today.entries.map(n => `
           <div class="list-item">
-            <div><div class="title">${escapeHtml(n.food_name)} ${demoBadge(n)}</div><div class="meta">${n.meal_type} · ${n.calories} kcal · P${n.protein_g}g C${n.carbs_g}g F${n.fat_g}g</div></div>
+            <div><div class="title">${escapeHtml(n.food_name)}${demoBadge(n)}</div><div class="meta">${n.meal_type} · ${n.calories} kcal · P${n.protein_g}g C${n.carbs_g}g F${n.fat_g}g</div></div>
             <button class="icon-btn danger" data-del="${n.id}">✕</button>
           </div>
         `).join('') : '<div class="empty">No food logged today.</div>'}
@@ -413,6 +413,7 @@ Views.nutrition = async (el) => {
     Views.nutrition(el);
   }));
 };
+
 Views.history = async (el) => {
   const now = new Date();
   const defaultMonth = now.toISOString().slice(0, 7);
@@ -548,7 +549,6 @@ Views.history = async (el) => {
         </div>
       `;
 
-      
     } catch (error) {
       box.innerHTML = `
         <div class="empty">
@@ -563,19 +563,32 @@ Views.history = async (el) => {
 
   await loadHistory();
 };
+
 // ============================================================
-// AI COACH
+// AI COACH (FIXED & SAFEGUARDED)
 // ============================================================
 Views.coach = async (el) => {
   el.innerHTML = '<div class="empty">Analyzing your training data…</div>';
-  const c = await Api.coach().catch(() => ({ messages: [] }));
+  
+  let messages = [];
+  try {
+    const c = await Api.coach();
+    if (c && Array.isArray(c.messages)) {
+      messages = c.messages;
+    }
+  } catch (err) {
+    console.error("Coach API Error:", err);
+  }
+
   el.innerHTML = `
     <div class="card">
       <h2>PULSE AI Coach</h2>
       <p style="color:var(--text-dim);font-size:12.5px;margin-bottom:16px">
         A local, rule-based coaching engine — every message below is generated directly from your own logged workouts, with no external AI service involved.
       </p>
-      ${c.messages.length ? c.messages.map(m => `<div class="coach-msg ${toneClass(m.tone)}"><span class="dot">●</span><span>${escapeHtml(m.text)}</span></div>`).join('') : '<div class="empty">Log a few workouts to unlock coaching.</div>'}
+      ${messages.length 
+        ? messages.map(m => `<div class="coach-msg ${toneClass(m.tone)}"><span class="dot">●</span><span>${escapeHtml(m.text)}</span></div>`).join('') 
+        : '<div class="empty">Log a few workouts to unlock coaching cues!</div>'}
     </div>
   `;
 };
@@ -594,7 +607,7 @@ Views.activity = async (el) => {
       <div class="list">
         ${rows.length ? rows.map(r => `
           <div class="list-item">
-            <div><div class="title">${iconFor(r.type)} ${escapeHtml(r.description)}</div><div class="meta">${fmtDate(r.date, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div></div>
+            <div><div class="title">${iconFor(r.type)}${escapeHtml(r.description)}</div><div class="meta">${fmtDate(r.date, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div></div>
           </div>
         `).join('') : '<div class="empty">No activity yet.</div>'}
       </div>
@@ -628,100 +641,7 @@ Views.profile = async (el) => {
           <div class="field"><label>Weight (kg)</label><input id="pWeight" type="number" step="0.1" value="${u.weight_kg ?? ''}"></div>
         </div>
         <div class="field"><label>Goal weight (kg)</label><input id="pGoalWeight" type="number" step="0.1" value="${u.goal_weight_kg ?? ''}"></div>
-        <div class="field"><label>Fitness goal</label><input id="pGoal" value="${escapeHtml(u.fitness_goal || '')}"></div>
-        <div class="field"><label>Activity level</label>
-          <select id="pActivity">
-            ${['sedentary', 'lightly active', 'moderately active', 'very active', 'athlete'].map(a => `<option ${u.activity_level === a ? 'selected' : ''}>${a}</option>`).join('')}
-          </select>
-        </div>
-        <button class="btn btn-primary" id="pSave">Save profile</button>
-      </div>
-      <div class="card">
-        <h2>Basic fitness stats</h2>
-        <div class="list">
-          <div class="list-item"><span class="title">BMI</span><span class="meta">${u.height_cm && u.weight_kg ? (u.weight_kg / Math.pow(u.height_cm / 100, 2)).toFixed(1) : '—'}</span></div>
-          <div class="list-item"><span class="title">Current weight</span><span class="meta">${u.weight_kg ?? '—'} kg</span></div>
-          <div class="list-item"><span class="title">Goal weight</span><span class="meta">${u.goal_weight_kg ?? '—'} kg</span></div>
-          <div class="list-item"><span class="title">Weekly workout target</span><span class="meta">${u.weekly_workout_target} sessions</span></div>
-        </div>
       </div>
     </div>
   `;
-
-  document.getElementById('pSave').addEventListener('click', async () => {
-    await Api.profile.update({
-      name: document.getElementById('pName').value,
-      age: document.getElementById('pAge').value,
-      gender: document.getElementById('pGender').value,
-      height_cm: document.getElementById('pHeight').value,
-      weight_kg: document.getElementById('pWeight').value,
-      goal_weight_kg: document.getElementById('pGoalWeight').value,
-      fitness_goal: document.getElementById('pGoal').value,
-      activity_level: document.getElementById('pActivity').value
-    }).catch(() => {});
-    Views.profile(el);
-  });
-};
-
-// ============================================================
-// SETTINGS
-// ============================================================
-Views.settings = async (el) => {
-  el.innerHTML = '<div class="empty">Loading settings…</div>';
-  const s = await Api.settings.get().catch(() => null);
-  if (!s) { el.innerHTML = '<div class="empty">Could not load settings.</div>'; return; }
-
-  el.innerHTML = `
-    <div class="grid grid-2">
-      <div class="card">
-        <h2>Targets</h2>
-        <div class="field"><label>Weekly workout target</label><input id="sWorkouts" type="number" value="${s.weekly_workout_target}"></div>
-        <div class="field"><label>Daily calorie target</label><input id="sCalories" type="number" value="${s.calorie_target}"></div>
-        <div class="field-row">
-          <div class="field"><label>Protein target (g)</label><input id="sProtein" type="number" value="${s.protein_target}"></div>
-          <div class="field"><label>Carb target (g)</label><input id="sCarbs" type="number" value="${s.carb_target}"></div>
-          <div class="field"><label>Fat target (g)</label><input id="sFat" type="number" value="${s.fat_target}"></div>
-        </div>
-        <div class="field"><label>Weight unit</label>
-          <select id="sUnit"><option value="kg" ${s.weight_unit === 'kg' ? 'selected' : ''}>Kilograms (kg)</option><option value="lb" ${s.weight_unit === 'lb' ? 'selected' : ''}>Pounds (lb)</option></select>
-        </div>
-        <button class="btn btn-primary" id="sSave">Save settings</button>
-      </div>
-      <div class="card">
-        <h2>Preferences</h2>
-        <div class="toggle-row">
-          <span>Dark theme</span>
-          <label class="switch"><input type="checkbox" id="sTheme" ${s.theme === 'dark' ? 'checked' : ''}><span class="track"></span></label>
-        </div>
-        <div class="toggle-row">
-          <span>Notifications</span>
-          <label class="switch"><input type="checkbox" id="sNotif" ${s.notifications_enabled ? 'checked' : ''}><span class="track"></span></label>
-        </div>
-        <div style="margin-top:24px">
-          <h3 style="color:var(--coral)">Danger zone</h3>
-          <p style="font-size:12.5px;color:var(--text-dim);margin-bottom:10px">Permanently deletes all workouts, weight logs, goals, nutrition entries and activity history. This cannot be undone.</p>
-          <button class="btn btn-danger" id="sReset">Reset all data</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.getElementById('sSave').addEventListener('click', async () => {
-    await Api.settings.update({
-      weekly_workout_target: document.getElementById('sWorkouts').value,
-      calorie_target: document.getElementById('sCalories').value,
-      protein_target: document.getElementById('sProtein').value,
-      carb_target: document.getElementById('sCarbs').value,
-      fat_target: document.getElementById('sFat').value,
-      weight_unit: document.getElementById('sUnit').value,
-      theme: document.getElementById('sTheme').checked ? 'dark' : 'light',
-      notifications_enabled: document.getElementById('sNotif').checked
-    }).catch(() => {});
-    Views.settings(el);
-  });
-  document.getElementById('sReset').addEventListener('click', async () => {
-    if (!confirm('This will permanently delete all your workouts, goals, nutrition logs, weight history and activity. Continue?')) return;
-    await Api.settings.reset().catch(() => {});
-    Views.settings(el);
-  });
 };
