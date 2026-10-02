@@ -4,16 +4,15 @@ const app = express();
 
 app.use(express.json());
 
-// Public directory absolute path setup
-const publicPath = path.join(__dirname, 'public');
-app.use(express.static(publicPath));
+// Main root folder se static files serve karne ke liye
+app.use(express.static(__dirname));
 
-// API routes handle hone ke baad baaki sabke liye index.html deliver karo
+// Fallback route index.html ke liye
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) {
     return next();
   }
-  res.sendFile(path.join(publicPath, 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
