@@ -1,7 +1,4 @@
 // js/views.js
-// One render function per sidebar section. Each function receives the
-// #content element, fetches what it needs via Api, and renders HTML into it.
-
 const Modal = (() => {
   function open(title, bodyHtml, { onMount, wide } = {}) {
     const root = document.getElementById('modalRoot');
@@ -445,7 +442,6 @@ Views.history = async (el) => {
       const m = data.monthly;
       const daily = data.daily;
 
-      // Monday-Sunday weekly grouping
       const weeks = {};
 
       daily.forEach(day => {
@@ -565,30 +561,18 @@ Views.history = async (el) => {
 };
 
 // ============================================================
-// AI COACH (FIXED & SAFEGUARDED)
+// AI COACH
 // ============================================================
 Views.coach = async (el) => {
   el.innerHTML = '<div class="empty">Analyzing your training data…</div>';
-  
-  let messages = [];
-  try {
-    const c = await Api.coach();
-    if (c && Array.isArray(c.messages)) {
-      messages = c.messages;
-    }
-  } catch (err) {
-    console.error("Coach API Error:", err);
-  }
-
+  const c = await Api.coach().catch(() => ({ messages: [] }));
   el.innerHTML = `
     <div class="card">
       <h2>PULSE AI Coach</h2>
       <p style="color:var(--text-dim);font-size:12.5px;margin-bottom:16px">
         A local, rule-based coaching engine — every message below is generated directly from your own logged workouts, with no external AI service involved.
       </p>
-      ${messages.length 
-        ? messages.map(m => `<div class="coach-msg ${toneClass(m.tone)}"><span class="dot">●</span><span>${escapeHtml(m.text)}</span></div>`).join('') 
-        : '<div class="empty">Log a few workouts to unlock coaching cues!</div>'}
+      ${c.messages.length ? c.messages.map(m => `<div class="coach-msg ${toneClass(m.tone)}"><span class="dot">●</span><span>${escapeHtml(m.text)}</span></div>`).join('') : '<div class="empty">Log a few workouts to unlock coaching.</div>'}
     </div>
   `;
 };
