@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PULSE</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
@@ -17,9 +18,9 @@
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; }
-    body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; padding-bottom: 40px; }
+    body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; padding-bottom: 50px; }
 
-    /* Top Header */
+    /* Top Navigation Header */
     header {
       background: #111512;
       border-bottom: 1px solid var(--card-border);
@@ -37,13 +38,32 @@
       color: var(--text-main);
       font-size: 1.4rem;
       cursor: pointer;
-      display: flex;
-      align-items: center;
     }
-    .brand {
-      font-size: 1.3rem;
-      font-weight: 900;
-      letter-spacing: 0.5px;
+    .brand { font-size: 1.3rem; font-weight: 900; letter-spacing: 0.5px; }
+
+    /* Navigation Menu Drawer */
+    .nav-menu {
+      display: none;
+      background: #111512;
+      border-bottom: 1px solid var(--card-border);
+      padding: 12px 20px;
+      gap: 10px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    .nav-menu.open { display: flex; }
+    .nav-link {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .nav-link.active, .nav-link:hover {
+      color: var(--green-accent);
+      background: rgba(16, 185, 129, 0.1);
     }
 
     .container {
@@ -54,6 +74,9 @@
       flex-direction: column;
       gap: 16px;
     }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: flex; flex-direction: column; gap: 16px; }
 
     /* Cards */
     .card {
@@ -67,22 +90,13 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
     .card-icon { font-size: 1.2rem; }
-    .card-title {
-      font-size: 1.1rem;
-      font-weight: 800;
-      color: var(--text-main);
-    }
+    .card-title { font-size: 1.1rem; font-weight: 800; color: var(--text-main); }
+    .card-sub { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 14px; }
 
-    .card-sub {
-      color: var(--text-muted);
-      font-size: 0.85rem;
-      margin-bottom: 14px;
-    }
-
-    .select-input {
+    .select-input, .text-input {
       width: 100%;
       background: #111512;
       border: 1px solid var(--card-border);
@@ -90,18 +104,24 @@
       padding: 12px 16px;
       border-radius: 10px;
       font-size: 0.95rem;
-      font-weight: 500;
       outline: none;
+      margin-bottom: 10px;
+    }
+
+    .btn {
+      width: 100%;
+      background: var(--green-accent);
+      color: #0c0f0d;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 0.95rem;
       cursor: pointer;
     }
 
-    .stat-number {
-      font-size: 1.8rem;
-      font-weight: 800;
-      margin-top: 8px;
-    }
+    .stat-number { font-size: 1.8rem; font-weight: 800; margin-top: 8px; }
 
-    /* Weekly Card Inner Box */
     .week-box {
       background: #111512;
       border: 1px solid var(--card-border);
@@ -109,105 +129,152 @@
       padding: 16px;
       margin-top: 10px;
     }
-    .week-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.95rem;
-      font-weight: 700;
-    }
-    .week-meta {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
-    .week-stats {
-      display: flex;
-      gap: 12px;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
+    .week-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; }
+    .week-meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
   </style>
 </head>
 <body>
 
-  <!-- Top Navigation -->
+  <!-- Top Navigation Header -->
   <header>
-    <button class="menu-btn">☰</button>
+    <button class="menu-btn" onclick="toggleMenu()">☰</button>
     <div class="brand">PULSE</div>
   </header>
 
+  <!-- Options Menu -->
+  <nav class="nav-menu" id="navMenu">
+    <span class="nav-link active" onclick="showTab('dashboard')">Dashboard</span>
+    <span class="nav-link" onclick="showTab('workouts')">Workouts</span>
+    <span class="nav-link" onclick="showTab('exercises')">Exercises</span>
+    <span class="nav-link" onclick="showTab('progress')">Progress</span>
+    <span class="nav-link" onclick="showTab('analytics')">Analytics</span>
+    <span class="nav-link" onclick="showTab('goals')">Goals</span>
+    <span class="nav-link" onclick="showTab('nutrition')">Nutrition</span>
+    <span class="nav-link" onclick="showTab('coach')">AI Coach</span>
+  </nav>
+
   <main class="container">
 
-    <!-- Fitness History Selector -->
-    <div class="card">
-      <div class="card-title-row">
-        <span class="card-icon">📅</span>
-        <span class="card-title">Fitness History</span>
-      </div>
-      <div class="card-sub">View your daily and weekly fitness data for any month.</div>
-      <select class="select-input" id="monthSelect">
-        <option value="2026-10">October 2026</option>
-        <option value="2026-09">September 2026</option>
-        <option value="2026-08">August 2026</option>
-      </select>
-    </div>
-
-    <!-- Workouts Count -->
-    <div class="card">
-      <div class="card-title-row">
-        <span class="card-icon">🏋️</span>
-        <span class="card-title">Workouts</span>
-      </div>
-      <div class="stat-number" id="workoutCount">0</div>
-    </div>
-
-    <!-- Workout Calories -->
-    <div class="card">
-      <div class="card-title-row">
-        <span class="card-icon">🔥</span>
-        <span class="card-title">Workout Calories</span>
-      </div>
-      <div class="stat-number" id="workoutCal">0</div>
-    </div>
-
-    <!-- Workout Minutes -->
-    <div class="card">
-      <div class="card-title-row">
-        <span class="card-icon">⏱️</span>
-        <span class="card-title">Workout Minutes</span>
-      </div>
-      <div class="stat-number" id="workoutMin">0</div>
-    </div>
-
-    <!-- Nutrition Calories -->
-    <div class="card">
-      <div class="card-title-row">
-        <span class="card-icon">🍽️</span>
-        <span class="card-title">Nutrition Calories</span>
-      </div>
-      <div class="stat-number" id="nutritionCal">0</div>
-    </div>
-
-    <!-- Weekly Monday-Sunday -->
-    <div class="card">
-      <div class="card-title-row">
-        <span class="card-icon">📅</span>
-        <span class="card-title">Weekly Monday–Sunday</span>
-      </div>
-      <div class="week-box">
-        <div class="week-header">
-          <span>Week 1</span>
-          <div class="week-stats">
-            <span>🏋️ 0 workouts</span>
-            <span>🔥 0 kcal</span>
-          </div>
+    <!-- TAB 1: DASHBOARD (Exact Photo Layout) -->
+    <div id="tab-dashboard" class="tab-content active">
+      <div class="card">
+        <div class="card-title-row">
+          <span class="card-icon">📅</span>
+          <span class="card-title">Fitness History</span>
         </div>
-        <div class="week-meta">9/28/2026 – 10/4/2026</div>
+        <div class="card-sub">View your daily and weekly fitness data for any month.</div>
+        <select class="select-input">
+          <option value="2026-10">October 2026</option>
+          <option value="2026-09">September 2026</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <div class="card-title-row"><span class="card-icon">🏋️</span><span class="card-title">Workouts</span></div>
+        <div class="stat-number">0</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title-row"><span class="card-icon">🔥</span><span class="card-title">Workout Calories</span></div>
+        <div class="stat-number">0</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title-row"><span class="card-icon">⏱️</span><span class="card-title">Workout Minutes</span></div>
+        <div class="stat-number">0</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title-row"><span class="card-icon">🍽️</span><span class="card-title">Nutrition Calories</span></div>
+        <div class="stat-number">0</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title-row"><span class="card-icon">📅</span><span class="card-title">Weekly Monday–Sunday</span></div>
+        <div class="week-box">
+          <div class="week-header">
+            <span>Week 1</span>
+            <span style="font-size:0.85rem; color:var(--text-muted);">🏋️ 0 workouts • 🔥 0 kcal</span>
+          </div>
+          <div class="week-meta">9/28/2026 – 10/4/2026</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: WORKOUTS -->
+    <div id="tab-workouts" class="tab-content">
+      <div class="card">
+        <div class="card-title-row"><span class="card-icon">⚡</span><span class="card-title">Log New Workout</span></div>
+        <input type="text" class="text-input" placeholder="Workout Name (e.g. Chest Press)">
+        <input type="number" class="text-input" placeholder="Duration (Minutes)">
+        <input type="number" class="text-input" placeholder="Calories Burned">
+        <button class="btn">Add Workout</button>
+      </div>
+    </div>
+
+    <!-- TAB 3: EXERCISES -->
+    <div id="tab-exercises" class="tab-content">
+      <div class="card">
+        <div class="card-title-row"><span class="card-icon">📚</span><span class="card-title">Exercise Library</span></div>
+        <p class="card-sub">Bench Press, Squats, Deadlifts, Pull-ups, Running...</p>
+      </div>
+    </div>
+
+    <!-- TAB 4: PROGRESS -->
+    <div id="tab-progress" class="tab-content">
+      <div class="card">
+        <div class="card-title-row"><span class="card-icon">📈</span><span class="card-title">Weight & Progress</span></div>
+        <p class="card-sub">Log weight & track strength improvement.</p>
+      </div>
+    </div>
+
+    <!-- TAB 5: ANALYTICS -->
+    <div id="tab-analytics" class="tab-content">
+      <div class="card">
+        <div class="card-title-row"><span class="card-icon">📊</span><span class="card-title">Analytics</span></div>
+        <p class="card-sub">Monthly & weekly muscle-group analytics.</p>
+      </div>
+    </div>
+
+    <!-- TAB 6: GOALS -->
+    <div id="tab-goals" class="tab-content">
+      <div class="card">
+        <div class="card-title-row"><span class="card-icon">🎯</span><span class="card-title">Active Goals</span></div>
+        <p class="card-sub">Weekly Target: 5 workouts / week</p>
+      </div>
+    </div>
+
+    <!-- TAB 7: NUTRITION -->
+    <div id="tab-nutrition" class="tab-content">
+      <div class="card">
+        <div class="card-title-row"><span class="card-icon">🥗</span><span class="card-title">Nutrition Tracker</span></div>
+        <p class="card-sub">Daily protein, carbs, and calorie logs.</p>
+      </div>
+    </div>
+
+    <!-- TAB 8: AI COACH -->
+    <div id="tab-coach" class="tab-content">
+      <div class="card">
+        <div class="card-title-row"><span class="card-icon">🤖</span><span class="card-title">PULSE AI Coach</span></div>
+        <p class="card-sub">"Great streak! Maintain 2.5L water intake for recovery."</p>
       </div>
     </div>
 
   </main>
 
+  <script>
+    function toggleMenu() {
+      const menu = document.getElementById('navMenu');
+      menu.classList.toggle('open');
+    }
+
+    function showTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+      event.target.classList.add('active');
+    }
+  </script>
 </body>
 </html>
